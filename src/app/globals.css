@@ -127,3 +127,16 @@
 .numerical-answer-field input:disabled {
   opacity: 0.75;
 }
+
+
+/* Step 23: progress analytics */
+.analytics-card{text-align:left}
+.analytics-card>.results-icon,.analytics-card>h2,.analytics-card>.results-subtitle{text-align:center}
+.analytics-section{margin-top:24px}
+.analytics-section h3{margin:0 0 13px;font-size:15px;letter-spacing:-.25px}
+.analytics-row{margin:13px 0}
+.analytics-row-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:7px}
+.analytics-row-head strong{font-size:12px}
+.analytics-row-head span{font-size:10px;color:var(--muted);text-align:right}
+.analytics-track{height:8px;border-radius:99px;background:#edf0f6;overflow:hidden}
+.analytics-track span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#5369ec,#10b981);transition:width .25s ease}
