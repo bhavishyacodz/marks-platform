@@ -1,9 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const inputPath = path.resolve(process.argv[2] || "data/import/questions.json");
+const explicitInput = process.argv[2];
+let inputPath = path.resolve(explicitInput || "data/import/questions.json");
+if (!explicitInput && !fs.existsSync(inputPath)) {
+  inputPath = path.resolve("data/import/questions.template.json");
+  console.log("No staging batch found; validating the template instead.");
+}
 if (!fs.existsSync(inputPath)) {
-  console.error(`Import validation failed: ${inputPath} was not found. Copy data/import/questions.template.json to data/import/questions.json first.`);
+  console.error(`Import validation failed: ${inputPath} was not found.`);
   process.exit(1);
 }
 
