@@ -95,3 +95,35 @@
 .mock-preview-footnote{margin-top:20px;color:var(--muted);font-size:10px;line-height:1.6}
 .mock-empty{padding:40px 0}
 @media(max-width:720px){.mock-layout{grid-template-columns:1fr}.mock-palette{order:-1}.mock-palette-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.mock-topbar .beta-pill{display:none}.mock-intro h1,.mock-results h1{font-size:29px}.mock-question-panel,.mock-palette,.mock-results{padding:16px}.mock-score strong{font-size:38px}}
+
+
+/* Numerical-answer field shared by chapter practice and mock tests. */
+.numerical-answer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0.25rem 0 1rem;
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.numerical-answer-field input {
+  width: 100%;
+  min-height: 3.25rem;
+  box-sizing: border-box;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 0.85rem;
+  padding: 0.8rem 1rem;
+  background: var(--surface, #ffffff);
+  color: var(--text-primary, #111827);
+  font: inherit;
+  font-size: 1rem;
+}
+.numerical-answer-field input:focus {
+  outline: 2px solid var(--accent, #2563eb);
+  outline-offset: 2px;
+}
+.numerical-answer-field input:disabled {
+  opacity: 0.75;
+}
