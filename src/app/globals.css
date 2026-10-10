@@ -140,3 +140,14 @@
 .analytics-row-head span{font-size:10px;color:var(--muted);text-align:right}
 .analytics-track{height:8px;border-radius:99px;background:#edf0f6;overflow:hidden}
 .analytics-track span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#5369ec,#10b981);transition:width .25s ease}
+
+
+/* Step 24: daily study targets */
+.daily-target-editor{max-width:420px;margin:20px auto;text-align:left}
+.daily-target-editor>label{display:block;margin-bottom:7px;font-size:11px;font-weight:800;color:var(--muted)}
+.daily-target-editor>input{box-sizing:border-box;width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:15px}
+.daily-target-presets{display:flex;gap:8px;margin-top:10px}
+.daily-target-presets button{flex:1;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-size:11px;font-weight:800}
+.daily-target-presets button.selected{border-color:#9ca9ff;background:#eef0ff;color:var(--blue)}
+.daily-progress-panel{max-width:480px;margin:22px auto;padding:16px;border:1px solid var(--line);border-radius:12px;background:#fbfcff;text-align:left}
+.daily-progress-panel>p{margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.6}
