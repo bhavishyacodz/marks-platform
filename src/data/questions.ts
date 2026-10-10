@@ -81,4 +81,65 @@ export const questions: Question[] = [
     prompt: "If x² = 49 and x is positive, enter the value of x.", options: [], answer: "7", tolerance: 0,
     solution: "Since x² = 49, x = ±7. The question specifies that x is positive, so the answer is 7.",
   },
+
+  {
+    id: "practice-phy-optics-002", subject: "Physics", chapter: "Optics", topic: "Refraction",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "Light travels from air into glass of refractive index 1.5 at an angle of incidence of 30°. What is the sine of the angle of refraction?",
+    options: [
+      { id: "a", text: "1/3" }, { id: "b", text: "1/2" }, { id: "c", text: "√3/2" }, { id: "d", text: "3/4" },
+    ],
+    answer: "a",
+    solution: "By Snell's law, n₁ sin i = n₂ sin r. Taking n₁ ≈ 1, sin r = sin 30° / 1.5 = (1/2)/(3/2) = 1/3.",
+  },
+  {
+    id: "practice-phy-optics-003", subject: "Physics", chapter: "Optics", topic: "Total internal reflection",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Medium",
+    prompt: "A ray travels from glass (refractive index 1.5) toward air. What is the approximate critical angle?",
+    options: [
+      { id: "a", text: "30°" }, { id: "b", text: "42°" }, { id: "c", text: "60°" }, { id: "d", text: "90°" },
+    ],
+    answer: "b",
+    solution: "For a glass-to-air boundary, sin C = n_air/n_glass = 1/1.5 = 2/3. Thus C = sin⁻¹(2/3) ≈ 41.8°, or about 42°.",
+  },
+  {
+    id: "practice-chem-bond-002", subject: "Chemistry", chapter: "Chemical Bonding", topic: "Hybridisation",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "What is the hybridisation of the central carbon atom in CH₄?",
+    options: [
+      { id: "a", text: "sp" }, { id: "b", text: "sp²" }, { id: "c", text: "sp³" }, { id: "d", text: "dsp²" },
+    ],
+    answer: "c",
+    solution: "Carbon forms four equivalent sigma bonds in methane. Four electron domains correspond to tetrahedral geometry and sp³ hybridisation.",
+  },
+  {
+    id: "practice-chem-basic-001", subject: "Chemistry", chapter: "Some Basic Concepts in Chemistry", topic: "Mole concept",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "How many moles are present in 18 g of water (H₂O)? Use molar mass = 18 g mol⁻¹.",
+    options: [
+      { id: "a", text: "0.5 mol" }, { id: "b", text: "1 mol" }, { id: "c", text: "2 mol" }, { id: "d", text: "18 mol" },
+    ],
+    answer: "b",
+    solution: "Number of moles = given mass / molar mass = 18 g / (18 g mol⁻¹) = 1 mol.",
+  },
+  {
+    id: "practice-math-quad-002", subject: "Mathematics", chapter: "Complex Numbers & Quadratic Equations", topic: "Nature of roots",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "What is the nature of the roots of x² + 4x + 5 = 0?",
+    options: [
+      { id: "a", text: "Two distinct real roots" }, { id: "b", text: "Equal real roots" }, { id: "c", text: "A pair of non-real complex conjugates" }, { id: "d", text: "One zero root" },
+    ],
+    answer: "c",
+    solution: "The discriminant is D = b² − 4ac = 16 − 20 = −4. Since D < 0, the equation has two non-real complex conjugate roots.",
+  },
+  {
+    id: "practice-math-coordinate-001", subject: "Mathematics", chapter: "Coordinate Geometry", topic: "Parabola",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "For the parabola y² = 8x, what is the value of the focal parameter a in the standard form y² = 4ax?",
+    options: [
+      { id: "a", text: "1" }, { id: "b", text: "2" }, { id: "c", text: "4" }, { id: "d", text: "8" },
+    ],
+    answer: "b",
+    solution: "Compare y² = 8x with y² = 4ax. Then 4a = 8, so a = 2.",
+  },
 ];
