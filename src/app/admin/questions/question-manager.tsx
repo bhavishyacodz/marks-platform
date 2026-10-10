@@ -36,7 +36,7 @@ const blank = {
 };
 
 export default function AdminQuestionManager() {
-  const [supabase] = useState(() => createSupabaseBrowserClient());
+  const [supabase] = useState(() => { try { return createSupabaseBrowserClient(); } catch { return null; } });
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -47,6 +47,7 @@ export default function AdminQuestionManager() {
   const [notice, setNotice] = useState("Sign in with your authorized admin email to continue.");
 
   async function refresh() {
+    if (!supabase) { setNotice("Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in Vercel."); return; }
     const { data: authData } = await supabase.auth.getUser();
     const currentUser = authData.user ?? null;
     setUser(currentUser);
@@ -78,6 +79,7 @@ export default function AdminQuestionManager() {
   }
 
   useEffect(() => {
+    if (!supabase) { void refresh(); return; }
     void refresh();
     const { data: listener } = supabase.auth.onAuthStateChange(() => { void refresh(); });
     return () => listener.subscription.unsubscribe();
@@ -87,6 +89,7 @@ export default function AdminQuestionManager() {
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!supabase) { setNotice("Supabase is not configured yet. Add the two public environment variables in Vercel."); return; }
     setBusy(true);
     setNotice("");
     const { error } = await supabase.auth.signInWithOtp({
@@ -98,6 +101,7 @@ export default function AdminQuestionManager() {
   }
 
   async function signOut() {
+    if (!supabase) return;
     await supabase.auth.signOut();
     setUser(null); setIsAdmin(false); setItems([]);
     setNotice("Signed out.");
@@ -119,7 +123,7 @@ export default function AdminQuestionManager() {
 
   async function saveQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!isAdmin) return;
+    if (!isAdmin || !supabase) return;
     setBusy(true); setNotice("");
     const options = form.type === "numerical" ? [] : form.optionsText.split("\n")
       .map((line) => line.trim()).filter(Boolean).map((line) => {
@@ -155,6 +159,7 @@ export default function AdminQuestionManager() {
   }
 
   async function changePublication(item: QuestionRow, status: QuestionRow["publication_status"]) {
+    if (!supabase || !isAdmin) return;
     const { error } = await supabase.from("questions").update({ publication_status: status, updated_at: new Date().toISOString() }).eq("id", item.id);
     setNotice(error ? "Update failed: " + error.message : status === "published" ? "Question published." : "Question moved to drafts.");
     if (!error) await refresh();
