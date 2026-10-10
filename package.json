@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "validate:questions": "node scripts/validate-questions.mjs",
     "validate:syllabus": "node scripts/validate-syllabus.mjs",
-    "validate": "npm run validate:questions && npm run validate:syllabus"
+    "validate": "npm run validate:questions && npm run validate:syllabus",
+    "validate:import": "node scripts/validate-question-import.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",
