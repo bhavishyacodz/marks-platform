@@ -14,6 +14,12 @@ export type Question = {
   shift: string;
   status: QuestionStatus;
   source: string;
+  /** Required for verified official PYQs: direct official source URL. */
+  sourceUrl?: string;
+  /** ISO date (YYYY-MM-DD) when the source, question and answer were checked. */
+  sourceCheckedAt?: string;
+  /** Brief audit note naming what was cross-checked. */
+  sourceNotes?: string;
   prompt: string;
   type?: QuestionType;
   options: QuestionOption[];
