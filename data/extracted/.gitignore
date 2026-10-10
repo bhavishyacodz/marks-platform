@@ -1,1 +1,3 @@
-# Local extraction manifests and page images may be large or restricted.\ndata/extracted/\n
+# Local extraction output may be large or restricted.
+/*
+!.gitignore
