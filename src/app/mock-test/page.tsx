@@ -35,10 +35,10 @@ export default function MockTestPage() {
   const maxScore = testQuestions.length * QUESTION_MARKS;
 
   useEffect(() => {
-    if (submitted || timeLeft <= 0) return;
+    if (submitted) return;
     const timer = window.setInterval(() => setTimeLeft(value => Math.max(0, value - 1)), 1000);
     return () => window.clearInterval(timer);
-  }, [submitted, timeLeft > 0]);
+  }, [submitted]);
 
   useEffect(() => {
     if (timeLeft === 0 && !submitted) setSubmitted(true);
