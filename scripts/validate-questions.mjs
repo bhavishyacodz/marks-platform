@@ -12,6 +12,7 @@ const sourceText = fs.readFileSync(filePath, "utf8");
 const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 const errors = [];
 const questions = [];
+const constants = new Map();
 
 function property(object, name) {
   if (!ts.isObjectLiteralExpression(object)) return undefined;
@@ -24,6 +25,7 @@ function property(object, name) {
 
 function literal(node) {
   if (!node) return undefined;
+  if (ts.isIdentifier(node) && constants.has(node.text)) return constants.get(node.text);
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
   if (ts.isNumericLiteral(node)) return Number(node.text);
   if (node.kind === ts.SyntaxKind.NullKeyword) return null;
@@ -41,6 +43,9 @@ function report(id, message) {
 }
 
 function walk(node) {
+  if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && (ts.isStringLiteral(node.initializer) || ts.isNoSubstitutionTemplateLiteral(node.initializer) || ts.isNumericLiteral(node.initializer))) {
+    constants.set(node.name.text, literal(node.initializer));
+  }
   if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === "questions") {
     const items = arrayItems(node.initializer);
     if (!items) {
