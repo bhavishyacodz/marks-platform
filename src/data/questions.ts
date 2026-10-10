@@ -212,4 +212,77 @@ export const questions: Question[] = [
     answer: "b",
     solution: "By Ohm's law, R = V/I = 12 V / 3 A = 4 Ω.",
   },
+
+  // Coverage expansion batch 1: original practice questions, not official PYQs.
+  {
+    id: "practice-phy-kinematics-001", subject: "Physics", chapter: "Kinematics", topic: "Uniform acceleration",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "A car starts from rest and accelerates uniformly at 2 m s⁻² for 5 s. How far does it travel?",
+    options: [{ id: "a", text: "10 m" }, { id: "b", text: "20 m" }, { id: "c", text: "25 m" }, { id: "d", text: "50 m" }],
+    answer: "c", solution: "Use s = ut + ½at². With u = 0, a = 2 m s⁻² and t = 5 s, s = 0 + ½ × 2 × 25 = 25 m."
+  },
+  {
+    id: "practice-phy-laws-motion-001", subject: "Physics", chapter: "Laws of Motion", topic: "Newton's second law",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "A net force of 12 N acts on a 3 kg object. What is its acceleration?",
+    options: [{ id: "a", text: "0.25 m s⁻²" }, { id: "b", text: "4 m s⁻²" }, { id: "c", text: "9 m s⁻²" }, { id: "d", text: "36 m s⁻²" }],
+    answer: "b", solution: "Newton's second law gives F = ma, so a = F/m = 12/3 = 4 m s⁻²."
+  },
+  {
+    id: "practice-phy-work-energy-001", subject: "Physics", chapter: "Work, Energy & Power", topic: "Kinetic energy",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "What is the kinetic energy of a 2 kg object moving at 3 m s⁻¹?",
+    options: [{ id: "a", text: "3 J" }, { id: "b", text: "6 J" }, { id: "c", text: "9 J" }, { id: "d", text: "18 J" }],
+    answer: "c", solution: "Kinetic energy K = ½mv² = ½ × 2 × 3² = 9 J."
+  },
+  {
+    id: "practice-phy-gravitation-001", subject: "Physics", chapter: "Gravitation", topic: "Acceleration due to gravity",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "Ignoring air resistance, an object near Earth's surface is dropped from rest. Taking g = 10 m s⁻², how far does it fall in 2 s?",
+    options: [{ id: "a", text: "5 m" }, { id: "b", text: "10 m" }, { id: "c", text: "20 m" }, { id: "d", text: "40 m" }],
+    answer: "c", solution: "For a drop from rest, s = ½gt² = ½ × 10 × 2² = 20 m."
+  },
+  {
+    id: "practice-phy-thermo-001", subject: "Physics", chapter: "Thermodynamics", topic: "First law of thermodynamics",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Medium",
+    prompt: "A gas absorbs 500 J of heat and does 200 J of work on its surroundings. What is the change in its internal energy?",
+    options: [{ id: "a", text: "−700 J" }, { id: "b", text: "−300 J" }, { id: "c", text: "300 J" }, { id: "d", text: "700 J" }],
+    answer: "c", solution: "Using ΔU = Q − W, with heat absorbed Q = +500 J and work done by the gas W = +200 J, ΔU = 500 − 200 = 300 J."
+  },
+  {
+    id: "practice-chem-thermo-001", subject: "Chemistry", chapter: "Chemical Thermodynamics", topic: "Enthalpy and heat",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "At constant pressure, a reaction releases 35 kJ of heat to the surroundings. What is the reaction enthalpy change for the stated process?",
+    options: [{ id: "a", text: "+35 kJ" }, { id: "b", text: "−35 kJ" }, { id: "c", text: "0 kJ" }, { id: "d", text: "Cannot be negative" }],
+    answer: "b", solution: "At constant pressure, qₚ = ΔH. Since heat is released by the system, qₚ is negative, so ΔH = −35 kJ."
+  },
+  {
+    id: "practice-chem-solutions-001", subject: "Chemistry", chapter: "Solutions", topic: "Molarity",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "A solution contains 0.50 mol of solute in a final solution volume of 2.0 L. What is its molarity?",
+    options: [{ id: "a", text: "0.25 mol L⁻¹" }, { id: "b", text: "1.0 mol L⁻¹" }, { id: "c", text: "2.5 mol L⁻¹" }, { id: "d", text: "4.0 mol L⁻¹" }],
+    answer: "a", solution: "Molarity M = moles of solute / volume of solution in litres = 0.50/2.0 = 0.25 mol L⁻¹."
+  },
+  {
+    id: "practice-chem-kinetics-001", subject: "Chemistry", chapter: "Chemical Kinetics", topic: "Rate law and order",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Medium",
+    prompt: "For a reaction with rate law rate = k[A]², what is the overall order of the reaction?",
+    options: [{ id: "a", text: "Zero" }, { id: "b", text: "One" }, { id: "c", text: "Two" }, { id: "d", text: "Three" }],
+    answer: "c", solution: "The overall order is the sum of the powers of concentration terms in the rate law. Here the only power is 2, so the order is two."
+  },
+  {
+    id: "practice-math-binomial-001", subject: "Mathematics", chapter: "Binomial Theorem", topic: "General term",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "In the expansion of (x + 2)³, what is the coefficient of x²?",
+    options: [{ id: "a", text: "2" }, { id: "b", text: "3" }, { id: "c", text: "6" }, { id: "d", text: "8" }],
+    answer: "c", solution: "The x² term comes from choosing x² and one factor of 2: C(3,2)x²(2) = 3 × 2 x² = 6x²."
+  },
+  {
+    id: "practice-math-trig-001", subject: "Mathematics", chapter: "Trigonometry", topic: "Trigonometric identities",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "If sin θ = 3/5 and θ is acute, what is cos θ?",
+    options: [{ id: "a", text: "2/5" }, { id: "b", text: "3/4" }, { id: "c", text: "4/5" }, { id: "d", text: "5/4" }],
+    answer: "c", solution: "Using sin²θ + cos²θ = 1, cos²θ = 1 − 9/25 = 16/25. Since θ is acute, cos θ is positive, so cos θ = 4/5."
+  },
+
 ];
