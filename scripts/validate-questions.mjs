@@ -81,8 +81,32 @@ for (const [index, item] of questions.entries()) {
 
   const status = literal(property(item, "status"));
   if (status !== "verified" && status !== "unverified") report(label, "'status' must be verified or unverified.");
-  if (status === "verified" && (year === null || literal(property(item, "shift")) === "Demo practice")) {
-    report(label, "verified questions need a year and a real exam shift.");
+  if (status === "verified") {
+    if (year === null || literal(property(item, "shift")) === "Demo practice") {
+      report(label, "verified questions need a year and a real exam shift.");
+    }
+    const sourceUrl = literal(property(item, "sourceUrl"));
+    const checkedAt = literal(property(item, "sourceCheckedAt"));
+    const notes = literal(property(item, "sourceNotes"));
+    if (typeof sourceUrl !== "string" || !sourceUrl.trim()) {
+      report(label, "verified questions must include sourceUrl pointing to the official source.");
+    } else {
+      try {
+        const url = new URL(sourceUrl);
+        const officialHosts = new Set(["jeemain.nta.nic.in", "nta.ac.in", "www.nta.ac.in"]);
+        if (url.protocol !== "https:" || !officialHosts.has(url.hostname.toLowerCase())) {
+          report(label, "sourceUrl must be an HTTPS URL on jeemain.nta.nic.in or nta.ac.in.");
+        }
+      } catch {
+        report(label, "sourceUrl must be a valid URL.");
+      }
+    }
+    if (typeof checkedAt !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(checkedAt) || Number.isNaN(Date.parse(checkedAt))) {
+      report(label, "verified questions must include sourceCheckedAt in YYYY-MM-DD format.");
+    }
+    if (typeof notes !== "string" || !notes.trim()) {
+      report(label, "verified questions must include sourceNotes describing what was checked.");
+    }
   }
 
   const type = literal(property(item, "type")) ?? "mcq";
