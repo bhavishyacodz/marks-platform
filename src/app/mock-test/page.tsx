@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { questions } from "@/data/questions";
+import { isCorrectAnswer, questions } from "@/data/questions";
 
 const EXAM_SECONDS = 180 * 60;
 const QUESTION_MARKS = 4;
@@ -29,8 +29,8 @@ export default function MockTestPage() {
   const answeredCount = Object.keys(answers).length;
   const markedCount = reviewIds.length;
   const unansweredCount = Math.max(0, testQuestions.length - answeredCount);
-  const correctCount = testQuestions.filter(q => answers[q.id] === q.answer).length;
-  const incorrectCount = testQuestions.filter(q => answers[q.id] && answers[q.id] !== q.answer).length;
+  const correctCount = testQuestions.filter(q => isCorrectAnswer(q, answers[q.id])).length;
+  const incorrectCount = testQuestions.filter(q => answers[q.id] !== undefined && answers[q.id].trim() !== "" && !isCorrectAnswer(q, answers[q.id])).length;
   const score = correctCount * QUESTION_MARKS - incorrectCount * NEGATIVE_MARKS;
   const maxScore = testQuestions.length * QUESTION_MARKS;
 
@@ -85,7 +85,7 @@ export default function MockTestPage() {
           <div className="mock-question-head"><span>Question {currentIndex + 1} of {testQuestions.length}</span><span className="mock-subject">{current.subject}</span></div>
           <div className="mock-question-meta"><span>{current.chapter} · {current.topic}</span><span>{QUESTION_MARKS} marks</span></div>
           <h2>{current.prompt}</h2>
-          <div className="options-list mock-options">{current.options.map((option, optionIndex) => <button key={option.id} className={`option ${answers[current.id] === option.id ? "chosen" : ""}`} onClick={() => chooseAnswer(option.id)}><span className="option-letter">{String.fromCharCode(65 + optionIndex)}</span><span>{option.text}</span>{answers[current.id] === option.id && <span className="option-mark">✓</span>}</button>)}</div>
+          <div className="options-list mock-options">{current.type === "numerical" ? <label className="numerical-answer-field"><span>Enter numerical answer</span><input type="number" inputMode="decimal" step="any" value={answers[current.id] ?? ""} onChange={event => chooseAnswer(event.target.value)} placeholder="Type your answer" aria-label="Numerical answer" /></label> : current.options.map((option, optionIndex) => <button key={option.id} className={`option ${answers[current.id] === option.id ? "chosen" : ""}`} onClick={() => chooseAnswer(option.id)}><span className="option-letter">{String.fromCharCode(65 + optionIndex)}</span><span>{option.text}</span>{answers[current.id] === option.id && <span className="option-mark">✓</span>}</button>)}</div>
           <div className="mock-question-actions"><button className={reviewIds.includes(current.id) ? "review-toggle review-active" : "review-toggle"} onClick={toggleReview}>{reviewIds.includes(current.id) ? "★ Marked for review" : "☆ Mark for review"}</button><button className="mock-clear-answer" onClick={() => setAnswers(previous => { const next = { ...previous }; delete next[current.id]; return next; })} disabled={!answers[current.id]}>Clear response</button></div>
           <div className="mock-bottom-actions"><button className="secondary-button" disabled={currentIndex === 0} onClick={() => setCurrentIndex(i => i - 1)}>← Previous</button><button className="primary-button" onClick={() => setCurrentIndex(i => Math.min(testQuestions.length - 1, i + 1))} disabled={currentIndex === testQuestions.length - 1}>Save & next →</button></div>
         </section>
@@ -107,7 +107,7 @@ export default function MockTestPage() {
       <p className="mock-results-subtitle">Your score is calculated from the current demo question bank. This result is not saved to an account.</p>
       <div className="mock-score"><strong>{score}</strong><span>out of {maxScore} marks</span></div>
       <div className="mock-results-grid"><div><strong>{correctCount}</strong><span>Correct · +{correctCount * QUESTION_MARKS}</span></div><div><strong>{incorrectCount}</strong><span>Incorrect · −{incorrectCount * NEGATIVE_MARKS}</span></div><div><strong>{unansweredCount}</strong><span>Unanswered · 0</span></div><div><strong>{markedCount}</strong><span>Marked for review</span></div></div>
-      <div className="mock-results-list"><h2>Review your answers</h2>{testQuestions.map((q, i) => <article key={q.id} className="mock-review-item"><div><strong>Q{i + 1} · {q.subject}</strong><span>{q.prompt}</span></div><span className={answers[q.id] === q.answer ? "result-correct" : answers[q.id] ? "result-incorrect" : "result-unanswered"}>{answers[q.id] === q.answer ? "Correct" : answers[q.id] ? "Incorrect" : "Unanswered"}</span><p>Your answer: {q.options.find(o => o.id === answers[q.id])?.text ?? "Not answered"}</p><p>Correct answer: {q.options.find(o => o.id === q.answer)?.text}</p><p>{q.solution}</p></article>)}</div>
+      <div className="mock-results-list"><h2>Review your answers</h2>{testQuestions.map((q, i) => <article key={q.id} className="mock-review-item"><div><strong>Q{i + 1} · {q.subject}</strong><span>{q.prompt}</span></div><span className={answers[q.id] === q.answer ? "result-correct" : answers[q.id] ? "result-incorrect" : "result-unanswered"}>{isCorrectAnswer(q, answers[q.id]) ? "Correct" : answers[q.id] !== undefined && answers[q.id].trim() !== "" ? "Incorrect" : "Unanswered"}</span><p>Your answer: {answers[q.id] === undefined || answers[q.id].trim() === "" ? "Not answered" : q.type === "numerical" ? answers[q.id] : q.options.find(o => o.id === answers[q.id])?.text ?? "Not answered"}</p><p>Correct answer: {q.type === "numerical" ? q.answer : q.options.find(o => o.id === q.answer)?.text}</p><p>{q.solution}</p></article>)}</div>
       <div className="mock-results-actions"><button className="primary-button" onClick={() => { setCurrentIndex(0); setAnswers({}); setReviewIds([]); setTimeLeft(EXAM_SECONDS); setSubmitted(false); }}>Restart preview</button><Link className="secondary-button" href="/">Back to MARKS home</Link></div>
       <p className="mock-preview-footnote">This is a workflow preview using {testQuestions.length} demo questions, not a complete JEE Main mock paper. Results are temporary.</p>
     </section>}
