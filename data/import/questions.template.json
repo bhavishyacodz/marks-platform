@@ -1,0 +1,27 @@
+[
+  {
+    "id": "replace-with-unique-id",
+    "subject": "Physics",
+    "chapter": "Optics",
+    "topic": "Lenses and lens formula",
+    "year": null,
+    "shift": "Original practice",
+    "status": "unverified",
+    "source": "Original practice question — not an official PYQ",
+    "sourceUrl": null,
+    "sourceCheckedAt": null,
+    "sourceNotes": null,
+    "prompt": "Write the question here.",
+    "type": "mcq",
+    "options": [
+      { "id": "a", "text": "Option A" },
+      { "id": "b", "text": "Option B" },
+      { "id": "c", "text": "Option C" },
+      { "id": "d", "text": "Option D" }
+    ],
+    "answer": "a",
+    "tolerance": null,
+    "solution": "Write a step-by-step explanation here.",
+    "difficulty": "Easy"
+  }
+]
