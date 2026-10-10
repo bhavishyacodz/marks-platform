@@ -148,4 +148,68 @@ export const questions: Question[] = [
     answer: "b",
     solution: "Compare y² = 8x with y² = 4ax. Then 4a = 8, so a = 2.",
   },
+
+  {
+    id: "practice-phy-units-001", subject: "Physics", chapter: "Units & Measurements", topic: "Dimensions and dimensional analysis",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "What is the dimensional formula of linear momentum?",
+    options: [
+      { id: "a", text: "[M L T⁻¹]" }, { id: "b", text: "[M L T⁻²]" },
+      { id: "c", text: "[M L² T⁻²]" }, { id: "d", text: "[M⁰ L T⁻¹]" },
+    ],
+    answer: "a",
+    solution: "Linear momentum p = mv. Mass has dimension [M] and velocity has dimension [L T⁻¹], so momentum has dimension [M L T⁻¹].",
+  },
+  {
+    id: "practice-chem-atomic-001", subject: "Chemistry", chapter: "Atomic Structure", topic: "Wave-particle duality",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "According to de Broglie's relation, the wavelength of a particle with momentum p is:",
+    options: [
+      { id: "a", text: "λ = hp" }, { id: "b", text: "λ = h/p" },
+      { id: "c", text: "λ = p/h" }, { id: "d", text: "λ = h + p" },
+    ],
+    answer: "b",
+    solution: "The de Broglie relation is λ = h/p, where h is Planck's constant and p is the particle's momentum.",
+  },
+  {
+    id: "practice-math-sequence-001", subject: "Mathematics", chapter: "Sequence & Series", topic: "Arithmetic progression",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "An arithmetic progression begins 3, 7, 11, 15, ... What is its nth term?",
+    options: [
+      { id: "a", text: "4n + 1" }, { id: "b", text: "4n − 1" },
+      { id: "c", text: "3n + 4" }, { id: "d", text: "n + 2" },
+    ],
+    answer: "b",
+    solution: "For an AP, aₙ = a + (n − 1)d. Here a = 3 and d = 4, so aₙ = 3 + 4(n − 1) = 4n − 1.",
+  },
+  {
+    id: "practice-math-matrices-001", subject: "Mathematics", chapter: "Matrices & Determinants", topic: "Determinants",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "Evaluate the determinant of the matrix [[2, 1], [3, 4]].",
+    options: [
+      { id: "a", text: "5" }, { id: "b", text: "8" }, { id: "c", text: "11" }, { id: "d", text: "−5" },
+    ],
+    answer: "a",
+    solution: "For a 2 × 2 matrix [[a, b], [c, d]], the determinant is ad − bc. Here it is (2)(4) − (1)(3) = 8 − 3 = 5.",
+  },
+  {
+    id: "practice-chem-equilibrium-001", subject: "Chemistry", chapter: "Equilibrium", topic: "pH",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "At 25°C, what is the pH of an ideal 0.001 mol L⁻¹ solution of a fully dissociated strong monoprotic acid?",
+    options: [
+      { id: "a", text: "1" }, { id: "b", text: "2" }, { id: "c", text: "3" }, { id: "d", text: "11" },
+    ],
+    answer: "c",
+    solution: "For a fully dissociated strong monoprotic acid, [H⁺] = 0.001 = 10⁻³ mol L⁻¹. Therefore pH = −log₁₀[H⁺] = 3.",
+  },
+  {
+    id: "practice-phy-current-001", subject: "Physics", chapter: "Current Electricity", topic: "Ohm's law",
+    year: null, shift: "Original practice", status: "unverified", source: practiceSource, difficulty: "Easy",
+    prompt: "A resistor carries a current of 3 A when the potential difference across it is 12 V. What is its resistance?",
+    options: [
+      { id: "a", text: "0.25 Ω" }, { id: "b", text: "4 Ω" }, { id: "c", text: "9 Ω" }, { id: "d", text: "36 Ω" },
+    ],
+    answer: "b",
+    solution: "By Ohm's law, R = V/I = 12 V / 3 A = 4 Ω.",
+  },
 ];
