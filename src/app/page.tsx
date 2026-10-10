@@ -18,8 +18,10 @@ export default function Home() {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
-  const [answeredCount, setAnsweredCount] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);\n  const [markedForReview, setMarkedForReview] = useState<string[]>([]);
+  const [attempts, setAttempts] = useState<Record<string, boolean>>({});
+  const answeredCount = Object.keys(attempts).length;
+  const correctCount = Object.values(attempts).filter(Boolean).length;
+  const [markedForReview, setMarkedForReview] = useState<string[]>([]);
 
   const visibleChapters = useMemo(() => chapters.filter(c => c.subject === subject && c.name.toLowerCase().includes(query.toLowerCase())), [subject, query]);
   const chapterQuestions = useMemo(() => questions.filter(q => q.subject === subject && q.chapter === activeChapter && (activeTopic === "All topics" || q.topic === activeTopic) && (year === "All years" || String(q.year) === year) && (sourceFilter === "All sources" || (sourceFilter === "Verified official PYQs" ? q.status === "verified" : q.status === "unverified"))), [subject, activeChapter, activeTopic, year, sourceFilter]);
