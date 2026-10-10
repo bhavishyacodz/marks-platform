@@ -26,7 +26,7 @@ export default function MockTestPage() {
 
   const testQuestions = useMemo(() => questions, []);
   const current = testQuestions[currentIndex];
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount = testQuestions.filter(q => answers[q.id] !== undefined && answers[q.id].trim() !== "").length;
   const markedCount = reviewIds.length;
   const unansweredCount = Math.max(0, testQuestions.length - answeredCount);
   const correctCount = testQuestions.filter(q => isCorrectAnswer(q, answers[q.id])).length;
@@ -107,7 +107,7 @@ export default function MockTestPage() {
       <p className="mock-results-subtitle">Your score is calculated from the current demo question bank. This result is not saved to an account.</p>
       <div className="mock-score"><strong>{score}</strong><span>out of {maxScore} marks</span></div>
       <div className="mock-results-grid"><div><strong>{correctCount}</strong><span>Correct · +{correctCount * QUESTION_MARKS}</span></div><div><strong>{incorrectCount}</strong><span>Incorrect · −{incorrectCount * NEGATIVE_MARKS}</span></div><div><strong>{unansweredCount}</strong><span>Unanswered · 0</span></div><div><strong>{markedCount}</strong><span>Marked for review</span></div></div>
-      <div className="mock-results-list"><h2>Review your answers</h2>{testQuestions.map((q, i) => <article key={q.id} className="mock-review-item"><div><strong>Q{i + 1} · {q.subject}</strong><span>{q.prompt}</span></div><span className={answers[q.id] === q.answer ? "result-correct" : answers[q.id] ? "result-incorrect" : "result-unanswered"}>{isCorrectAnswer(q, answers[q.id]) ? "Correct" : answers[q.id] !== undefined && answers[q.id].trim() !== "" ? "Incorrect" : "Unanswered"}</span><p>Your answer: {answers[q.id] === undefined || answers[q.id].trim() === "" ? "Not answered" : q.type === "numerical" ? answers[q.id] : q.options.find(o => o.id === answers[q.id])?.text ?? "Not answered"}</p><p>Correct answer: {q.type === "numerical" ? q.answer : q.options.find(o => o.id === q.answer)?.text}</p><p>{q.solution}</p></article>)}</div>
+      <div className="mock-results-list"><h2>Review your answers</h2>{testQuestions.map((q, i) => <article key={q.id} className="mock-review-item"><div><strong>Q{i + 1} · {q.subject}</strong><span>{q.prompt}</span></div><span className={isCorrectAnswer(q, answers[q.id]) ? "result-correct" : answers[q.id] !== undefined && answers[q.id].trim() !== "" ? "result-incorrect" : "result-unanswered"}>{isCorrectAnswer(q, answers[q.id]) ? "Correct" : answers[q.id] !== undefined && answers[q.id].trim() !== "" ? "Incorrect" : "Unanswered"}</span><p>Your answer: {answers[q.id] === undefined || answers[q.id].trim() === "" ? "Not answered" : q.type === "numerical" ? answers[q.id] : q.options.find(o => o.id === answers[q.id])?.text ?? "Not answered"}</p><p>Correct answer: {q.type === "numerical" ? q.answer : q.options.find(o => o.id === q.answer)?.text}</p><p>{q.solution}</p></article>)}</div>
       <div className="mock-results-actions"><button className="primary-button" onClick={() => { setCurrentIndex(0); setAnswers({}); setReviewIds([]); setTimeLeft(EXAM_SECONDS); setSubmitted(false); }}>Restart preview</button><Link className="secondary-button" href="/">Back to MARKS home</Link></div>
       <p className="mock-preview-footnote">This is a workflow preview using {testQuestions.length} demo questions, not a complete JEE Main mock paper. Results are temporary.</p>
     </section>}
