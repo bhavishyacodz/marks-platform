@@ -43,7 +43,7 @@ const practiceSource = "Original demo practice question — not an official PYQ"
  */
 export const questions: Question[] = [
   {
-    id: "demo-phy-lens-001", subject: "Physics", chapter: "Optics", topic: "Thin lens formula",
+    id: "demo-phy-lens-001", subject: "Physics", chapter: "Optics", topic: "Lenses and lens formula",
     year: null, shift: "Demo practice", status: "unverified", source: practiceSource, difficulty: "Medium",
     prompt: "A convex lens has focal length 20 cm. An object is placed 30 cm in front of the lens. Using the Cartesian sign convention, where is the image formed?",
     options: [
@@ -56,7 +56,7 @@ export const questions: Question[] = [
     solution: "Using 1/f = 1/v − 1/u, f = +20 cm and u = −30 cm. So 1/v = 1/20 − 1/30 = 1/60, hence v = +60 cm. The positive distance places the image on the opposite side.",
   },
   {
-    id: "demo-math-quad-001", subject: "Mathematics", chapter: "Complex Numbers & Quadratic Equations", topic: "Discriminant",
+    id: "demo-math-quad-001", subject: "Mathematics", chapter: "Complex Numbers & Quadratic Equations", topic: "Quadratic equations",
     year: null, shift: "Demo practice", status: "unverified", source: practiceSource, difficulty: "Easy",
     prompt: "For the quadratic equation x² − 6x + k = 0 to have equal real roots, what is k?",
     options: [
@@ -66,7 +66,7 @@ export const questions: Question[] = [
     solution: "Equal real roots require the discriminant to be zero: b² − 4ac = 0. Here 36 − 4k = 0, so k = 9.",
   },
   {
-    id: "demo-chem-bond-001", subject: "Chemistry", chapter: "Chemical Bonding", topic: "Molecular shape",
+    id: "demo-chem-bond-001", subject: "Chemistry", chapter: "Chemical Bonding", topic: "VSEPR theory",
     year: null, shift: "Demo practice", status: "unverified", source: practiceSource, difficulty: "Easy",
     prompt: "According to VSEPR theory, what is the molecular shape of CH₄?",
     options: [
@@ -76,7 +76,7 @@ export const questions: Question[] = [
     solution: "Carbon has four bonding pairs and no lone pairs in CH₄. The four electron pairs arrange tetrahedrally, giving a tetrahedral molecular shape.",
   },
   {
-    id: "demo-math-numerical-001", subject: "Mathematics", chapter: "Complex Numbers & Quadratic Equations", topic: "Numerical answer input",
+    id: "demo-math-numerical-001", subject: "Mathematics", chapter: "Complex Numbers & Quadratic Equations", topic: "Quadratic equations",
     year: null, shift: "Demo practice", status: "unverified", source: practiceSource, difficulty: "Easy", type: "numerical",
     prompt: "If x² = 49 and x is positive, enter the value of x.", options: [], answer: "7", tolerance: 0,
     solution: "Since x² = 49, x = ±7. The question specifies that x is positive, so the answer is 7.",
