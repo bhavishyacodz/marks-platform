@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 
 const explicitInput = process.argv[2];
 let inputPath = path.resolve(explicitInput || "data/import/questions.json");
