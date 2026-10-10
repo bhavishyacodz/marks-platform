@@ -1,65 +1,59 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { chapters, demoQuestion, subjects, type Subject } from "@/data/demo";
+import { chapters, subjects, type Subject } from "@/data/demo";
+
+type Question = {
+  id: string; subject: Subject; chapter: string; topic: string; year: number; shift: string;
+  status: "verified" | "unverified"; source: string; prompt: string;
+  options: { id: string; text: string }[]; answer: string; solution: string;
+};
+
+const questions: Question[] = [
+  { id: "demo-phy-lens-001", subject: "Physics", chapter: "Ray Optics", topic: "Thin lens formula", year: 2025, shift: "Practice set A", status: "unverified", source: "Original demo practice question — not an official PYQ", prompt: "A convex lens has focal length 20 cm. An object is placed 30 cm in front of the lens. Using the Cartesian sign convention, where is the image formed?", options: [{id:"a",text:"60 cm on the other side of the lens"},{id:"b",text:"60 cm on the same side as the object"},{id:"c",text:"12 cm on the other side of the lens"},{id:"d",text:"At infinity"}], answer:"a", solution:"Using 1/f = 1/v − 1/u, f = +20 cm and u = −30 cm. So 1/v = 1/20 − 1/30 = 1/60, hence v = +60 cm. The positive distance places the image on the opposite side." },
+  { id: "demo-math-quad-001", subject: "Mathematics", chapter: "Quadratic Equations", topic: "Discriminant", year: 2025, shift: "Practice set A", status: "unverified", source: "Original demo practice question — not an official PYQ", prompt: "For the quadratic equation x² − 6x + k = 0 to have equal real roots, what is k?", options: [{id:"a",text:"6"},{id:"b",text:"9"},{id:"c",text:"12"},{id:"d",text:"−9"}], answer:"b", solution:"Equal real roots require the discriminant to be zero: b² − 4ac = 0. Here 36 − 4k = 0, so k = 9." },
+  { id: "demo-chem-bond-001", subject: "Chemistry", chapter: "Chemical Bonding", topic: "Molecular shape", year: 2025, shift: "Practice set A", status: "unverified", source: "Original demo practice question — not an official PYQ", prompt: "According to VSEPR theory, what is the molecular shape of CH₄?", options: [{id:"a",text:"Trigonal planar"},{id:"b",text:"Tetrahedral"},{id:"c",text:"Linear"},{id:"d",text:"Bent"}], answer:"b", solution:"Carbon has four bonding pairs and no lone pairs in CH₄. The four electron pairs arrange tetrahedrally, giving a tetrahedral molecular shape." }
+];
+
+type View = "chapters" | "topics" | "questions" | "practice";
 
 export default function Home() {
   const [subject, setSubject] = useState<Subject>("Physics");
   const [query, setQuery] = useState("");
+  const [view, setView] = useState<View>("chapters");
+  const [activeChapter, setActiveChapter] = useState<string>("Ray Optics");
+  const [activeTopic, setActiveTopic] = useState("All topics");
+  const [year, setYear] = useState("All years");
+  const [sourceFilter, setSourceFilter] = useState("All sources");
+  const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
-  const [showQuestion, setShowQuestion] = useState(false);
 
-  const visibleChapters = useMemo(() => chapters.filter((chapter) =>
-    chapter.subject === subject && chapter.name.toLowerCase().includes(query.toLowerCase())
-  ), [subject, query]);
+  const visibleChapters = useMemo(() => chapters.filter(c => c.subject === subject && c.name.toLowerCase().includes(query.toLowerCase())), [subject, query]);
+  const chapterQuestions = useMemo(() => questions.filter(q => q.subject === subject && q.chapter === activeChapter && (activeTopic === "All topics" || q.topic === activeTopic) && (year === "All years" || String(q.year) === year) && (sourceFilter === "All sources" || (sourceFilter === "Verified official PYQs" ? q.status === "verified" : q.status === "unverified"))), [subject, activeChapter, activeTopic, year, sourceFilter]);
+  const current = chapterQuestions[index];
 
-  const openQuestion = () => {
-    setSelected(null);
-    setChecked(false);
-    setShowQuestion(true);
-  };
+  function openChapter(chapter: string) {
+    setActiveChapter(chapter); setActiveTopic("All topics"); setYear("All years"); setSourceFilter("All sources"); setIndex(0); setSelected(null); setChecked(false); setView("topics");
+  }
+  function startPractice() {
+    const available = questions.filter(q => q.subject === subject && q.chapter === activeChapter);
+    if (available.length) { setActiveTopic("All topics"); setYear("All years"); setSourceFilter("All sources"); setIndex(0); setSelected(null); setChecked(false); setView("practice"); }
+    else setView("questions");
+  }
+  function nextQuestion() { setIndex((i) => (i + 1) % chapterQuestions.length); setSelected(null); setChecked(false); }
+  const topics = Array.from(new Set(questions.filter(q => q.subject === subject && q.chapter === activeChapter).map(q => q.topic)));
 
-  return (
-    <main className="app-shell">
-      <header className="topbar">
-        <a className="brand" href="#" aria-label="MARKS home"><span className="brand-mark">M</span><span>MARKS<span className="brand-dot">.</span></span></a>
-        <span className="beta-pill">BETA PREVIEW</span>
-        <button className="avatar" aria-label="Profile preview">S</button>
-      </header>
-
-      <section className="welcome">
-        <div className="eyebrow"><span className="eyebrow-dot" /> YOUR JEE MAIN WORKSPACE</div>
-        <h1>Small steps.<br /><span>Big results.</span></h1>
-        <p className="welcome-copy">A clearer way to practice, review, and build consistency — one question at a time.</p>
-        <div className="stats-row">
-          <div className="stat-card"><span className="stat-icon blue">◎</span><div><strong>82</strong><span>Sample question count</span></div></div>
-          <div className="stat-card"><span className="stat-icon green">↗</span><div><strong>12%</strong><span>Illustrative progress</span></div></div>
-        </div>
-      </section>
-
-      <section className="section-block">
-        <div className="section-heading"><div><span className="section-kicker">YOUR SYLLABUS</span><h2>Choose a subject</h2></div><span className="muted-small">Sample data</span></div>
-        <div className="subject-tabs" role="tablist" aria-label="Subjects">
-          {subjects.map((item) => <button key={item.name} role="tab" aria-selected={subject === item.name} className={`subject-tab ${subject === item.name ? "active" : ""}`} onClick={() => setSubject(item.name)}><span className="subject-short">{item.short}</span><span className="subject-name">{item.name}</span><span className="subject-count">{item.count} sample Qs</span></button>)}
-        </div>
-      </section>
-
-      <section className="section-block chapter-section">
-        <div className="section-heading"><div><span className="section-kicker">KEEP THE MOMENTUM</span><h2>Chapter practice</h2></div><span className="count-badge">{visibleChapters.length} chapters</span></div>
-        <label className="search-box"><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search chapters..." />{query && <button onClick={() => setQuery("")} aria-label="Clear search">×</button>}</label>
-        <div className="chapter-list">
-          {visibleChapters.map((chapter, index) => <button className="chapter-card" key={chapter.name} onClick={openQuestion}><span className={`chapter-symbol symbol-${index % 4}`}>{["◈", "↗", "⌁", "∑"][index % 4]}</span><span className="chapter-info"><strong>{chapter.name}</strong><span>{chapter.questions} sample questions</span><span className="progress-track"><span style={{ width: `${chapter.progress}%` }} /></span></span><span className="chapter-end"><span>{chapter.progress}%</span><b>›</b></span></button>)}
-          {visibleChapters.length === 0 && <div className="empty-state">No chapters match that search.</div>}
-        </div>
-      </section>
-
-      <section className="featured-card"><div className="featured-top"><span className="featured-label">QUICK PRACTICE</span><span className="sparkle">✦</span></div><h2>One question can<br />change your day.</h2><p>Try a sample question with an explanation and answer check.</p><button className="primary-button" onClick={openQuestion}>Start a demo question <span>→</span></button></section>
-
-      {showQuestion && <div className="modal-backdrop" role="presentation" onClick={() => setShowQuestion(false)}><section className="question-modal" role="dialog" aria-modal="true" aria-labelledby="question-title" onClick={(event) => event.stopPropagation()}><div className="modal-head"><span className="section-kicker">PHYSICS · RAY OPTICS</span><button className="close-button" onClick={() => setShowQuestion(false)} aria-label="Close question">×</button></div><span className="demo-warning">{demoQuestion.sourceLabel}</span><h2 id="question-title">{demoQuestion.prompt}</h2><div className="formula-card">1/f = 1/v − 1/u<span>Thin lens formula</span></div><div className="options-list">{demoQuestion.options.map((option) => { const isCorrect = option.id === demoQuestion.correctOptionId; const isChosen = selected === option.id; return <button key={option.id} disabled={checked} className={`option ${isChosen ? "chosen" : ""} ${checked && isCorrect ? "correct" : ""} ${checked && isChosen && !isCorrect ? "incorrect" : ""}`} onClick={() => setSelected(option.id)}><span className="option-letter">{option.id.toUpperCase()}</span><span>{option.text}</span>{checked && isCorrect && <span className="option-mark">✓</span>}</button>; })}</div>{checked && <div className={`answer-explanation ${selected === demoQuestion.correctOptionId ? "success" : "review"}`}><strong>{selected === demoQuestion.correctOptionId ? "Correct answer!" : "Let’s review the method"}</strong><p>{demoQuestion.explanation}</p></div>}{!checked ? <button className="primary-button full-button" disabled={!selected} onClick={() => setChecked(true)}>Check answer <span>✓</span></button> : <button className="primary-button full-button" onClick={() => { setShowQuestion(false); setSelected(null); setChecked(false); }}>Back to dashboard <span>→</span></button>}</section></div>}
-
-      <nav className="bottom-nav" aria-label="Main navigation"><a className="nav-item active" href="#"><span>⌂</span>Home</a><button className="nav-item" onClick={() => document.querySelector(".chapter-section")?.scrollIntoView({ behavior: "smooth" })}><span>▦</span>Chapters</button><button className="nav-item" onClick={openQuestion}><span>◎</span>Practice</button><button className="nav-item" onClick={() => window.alert("Progress saving will be added in a later step.")}><span>▥</span>Progress</button></nav>
-      <footer className="footer-note">Built for focused practice <span>·</span> MARKS starter v0.1</footer>
-    </main>
-  );
+  return <main className="app-shell">
+    <header className="topbar"><a className="brand" href="#" onClick={(e) => {e.preventDefault();setView("chapters");}}><span className="brand-mark">M</span><span>MARKS<span className="brand-dot">.</span></span></a><span className="beta-pill">BETA PREVIEW</span><span className="avatar" aria-label="Profile preview">S</span></header>
+    <section className="welcome"><div className="eyebrow"><span className="eyebrow-dot"/> JEE MAIN PRACTICE WORKSPACE</div><h1>Practice smart.<br/><span>Track every step.</span></h1><p className="welcome-copy">Explore chapters, filter question sets by year and shift, and review solutions. Official PYQs are only marked verified after source checking.</p><div className="stats-row"><div className="stat-card"><span className="stat-icon blue">▦</span><div><strong>{chapters.length}</strong><span>Sample chapter entries</span></div></div><div className="stat-card"><span className="stat-icon green">✓</span><div><strong>{questions.filter(q=>q.status==="verified").length}</strong><span>Verified PYQs in this starter</span></div></div></div></section>
+    <section className="section-block"><div className="section-heading"><div><span className="section-kicker">STEP 1</span><h2>Choose a subject</h2></div><span className="muted-small">Starter syllabus</span></div><div className="subject-tabs" role="tablist" aria-label="Subjects">{subjects.map(item=><button key={item.name} role="tab" aria-selected={subject===item.name} className={`subject-tab ${subject===item.name?"active":""}`} onClick={()=>{setSubject(item.name);setQuery("");setView("chapters");}}><span className="subject-short">{item.short}</span><span className="subject-name">{item.name}</span><span className="subject-count">Sample catalogue</span></button>)}</div></section>
+    <section className="section-block chapter-section"><div className="section-heading"><div><span className="section-kicker">{view==="chapters"?"STEP 2":"CURRENT WORKFLOW"}</span><h2>{view==="chapters"?"Chapter practice":view==="topics"?activeChapter:view==="questions"?"Question sets":view==="practice"?"Practice question":activeChapter}</h2></div>{view!=="chapters"&&<button className="back-link" onClick={()=>setView(view==="practice"?"questions":view==="questions"?"topics":"chapters")}>← Back</button>}</div>
+    {view==="chapters"&&<><label className="search-box"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search chapters..."/>{query&&<button onClick={()=>setQuery("")} aria-label="Clear search">×</button>}</label><div className="chapter-list">{visibleChapters.map((c,i)=><button className="chapter-card" key={c.name} onClick={()=>openChapter(c.name)}><span className={`chapter-symbol symbol-${i%4}`}>{["◈","↗","⌁","∑"][i%4]}</span><span className="chapter-info"><strong>{c.name}</strong><span>Catalogue count: {c.questions} (sample metadata)</span><span className="progress-track"><span style={{width:`${c.progress}%`}}/></span></span><span className="chapter-end"><span>{c.progress}%</span><b>›</b></span></button>)}{!visibleChapters.length&&<div className="empty-state">No chapters match that search.</div>}</div></>}
+    {view==="topics"&&<><div className="notice-card"><strong>Question-source policy</strong><p>Only source-checked questions will be labelled as verified official JEE Main PYQs. This starter currently contains practice examples, not verified official PYQs.</p></div><div className="topic-grid"><button className="topic-card" onClick={()=>{setActiveTopic("All topics");setView("questions");}}>All topics <span>Browse available questions →</span></button>{topics.map(t=><button className="topic-card" key={t} onClick={()=>{setActiveTopic(t);setView("questions");}}>{t}<span>Practice this topic →</span></button>)}</div><button className="primary-button full-button" onClick={startPractice}>Start chapter practice <span>→</span></button></>}
+    {(view==="questions"||view==="practice")&&<><div className="filter-row"><label><span>Year</span><select value={year} onChange={e=>{setYear(e.target.value);setIndex(0);}}><option>All years</option><option>2025</option><option>2024</option><option>2023</option><option>2022</option><option>2021</option></select></label><label><span>Source</span><select value={sourceFilter} onChange={e=>{setSourceFilter(e.target.value);setIndex(0);}}><option>All sources</option><option>Verified official PYQs</option><option>Practice / unverified</option></select></label></div><div className="source-legend"><span className="unverified-pill">Practice / unverified</span><span>Year and shift labels are not proof of official origin.</span></div>{chapterQuestions.length===0?<div className="empty-state">No questions match these filters yet. Verified official PYQs will appear here after their source and shift are checked.</div>:view==="questions"?<div className="question-set-list">{chapterQuestions.map((q,i)=><button key={q.id} className="question-set-card" onClick={()=>{setIndex(i);setSelected(null);setChecked(false);setView("practice");}}><span className="question-number">{String(i+1).padStart(2,"0")}</span><span className="chapter-info"><strong>{q.topic}</strong><span>{q.year} · {q.shift}</span><span className="unverified-pill">{q.status==="verified"?"Verified official PYQ":"Practice / unverified"}</span></span><b>›</b></button>)}</div>:current&&<div className="practice-card"><div className="question-meta"><span>{current.subject} · {current.chapter}</span><span>{index+1} / {chapterQuestions.length}</span></div><span className={current.status==="verified"?"verified-pill":"unverified-pill"}>{current.source}</span><h3>{current.prompt}</h3>{current.subject==="Physics"&&<div className="formula-card">1/f = 1/v − 1/u<span>Thin lens formula</span></div>}<div className="options-list">{current.options.map(o=><button key={o.id} disabled={checked} className={`option ${selected===o.id?"chosen":""} ${checked&&o.id===current.answer?"correct":""} ${checked&&selected===o.id&&o.id!==current.answer?"incorrect":""}`} onClick={()=>setSelected(o.id)}><span className="option-letter">{o.id.toUpperCase()}</span><span>{o.text}</span>{checked&&o.id===current.answer&&<span className="option-mark">✓</span>}</button>)}</div>{checked&&<div className={`answer-explanation ${selected===current.answer?"success":"review"}`}><strong>{selected===current.answer?"Correct answer":"Review the solution"}</strong><p>{current.solution}</p></div>}{!checked?<button className="primary-button full-button" disabled={!selected} onClick={()=>setChecked(true)}>Check answer <span>✓</span></button>:<button className="primary-button full-button" onClick={nextQuestion}>Next question <span>→</span></button>}</div>}</>}
+    </section>
+    <section className="featured-card"><div className="featured-top"><span className="featured-label">SOURCE TRANSPARENCY</span><span className="sparkle">✦</span></div><h2>Verified means verified.</h2><p>No invented exam shifts or false PYQ labels. Practice content stays clearly marked until an official source is checked.</p><button className="primary-button" onClick={()=>{setView("chapters");window.scrollTo({top:0,behavior:"smooth"});}}>Back to chapters <span>→</span></button></section>
+    <nav className="bottom-nav" aria-label="Main navigation"><button className={`nav-item ${view==="chapters"?"active":""}`} onClick={()=>setView("chapters")}><span>⌂</span>Home</button><button className={`nav-item ${view==="chapters"||view==="topics"?"active":""}`} onClick={()=>setView("chapters")}><span>▦</span>Chapters</button><button className={`nav-item ${view==="practice"||view==="questions"?"active":""}`} onClick={()=>{if(questions.some(q=>q.subject===subject&&q.chapter===activeChapter)){setView("questions");}else{setActiveChapter(questions.find(q=>q.subject===subject)?.chapter??"");setView("questions");}}}><span>◎</span>Practice</button><button className="nav-item" onClick={()=>window.alert("Progress tracking and saving will be added in a later stage.")}><span>▥</span>Progress</button></nav><footer className="footer-note">MARKS · chapter & practice system v0.2 · sample catalogue</footer>
+  </main>;
 }
