@@ -44,7 +44,15 @@ Do not put an email, password, or service-role key in the SQL. Only register acc
 The table setup should include `public.questions` and `public.admin_users`, Row Level Security enabled on both, a policy for anonymous/authenticated reading of published questions, and admin-only insert/update/delete policies. Use the SQL setup already run in the Supabase project; do not drop or truncate tables to apply this guide.
 
 
-## 5. Enable private question-image uploads
+## 5. Show published questions on the learner homepage
+
+Run `supabase/migrations/202610110002_public_published_questions.sql` in Supabase SQL Editor. This adds a SELECT policy for anonymous and signed-in learners, limited to rows with `publication_status = 'published'`. It does not grant public insert, update, or delete access. Keep Row Level Security enabled on `public.questions` and retain the existing admin-only write policies.
+
+The learner homepage now loads up to 50 published rows from Supabase in a separate section. It does not replace or alter the static starter question bank. If Supabase is not configured or the public-read policy is missing, the existing practice workspace still works and the live section shows an error message.
+
+After deploying, open the public homepage and confirm the test question appears. Then check that a draft is not visible anonymously. Do not upload a private or sensitive image as a test.
+
+## 6. Enable private question-image uploads
 
 The admin form supports JPG, PNG, and WebP files up to 5 MB. Files are uploaded to the private `question-images` bucket and the object path is stored in `public.questions.image_path`. The browser does not need a service-role key.
 
