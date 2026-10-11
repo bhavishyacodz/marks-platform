@@ -62,3 +62,12 @@ The admin form supports JPG, PNG, and WebP files up to 5 MB. Files are uploaded 
 4. Deploy the Preview branch and test with an allowlisted admin account. Upload a small test diagram and save a draft.
 
 **Security note:** the bucket is private. Store only the object path, not a public URL. Any learner-facing display must request a short-lived signed URL or use an authenticated image endpoint; do not make the bucket public just to display images.
+
+
+## 7. Display private images on the learner homepage
+
+The learner homepage requests a one-hour signed URL only for images attached to published questions. The Storage bucket stays private; no public object URL or service-role key is used in browser code.
+
+Before enabling this feature in production, run `supabase/migrations/202610110003_published_question_image_reads.sql` in Supabase SQL Editor. Its SELECT policy permits reads only for objects in `question-images` whose first path folder matches a row in `public.questions` with `publication_status = 'published'`. Keep the existing admin-only INSERT, UPDATE, and DELETE policies unchanged. Review the policy against your current schema and storage policies before running it.
+
+After the migration and deployment, upload a harmless test diagram to a published test question and refresh the learner homepage. Confirm the image appears, the bucket remains private, and a draft question's image is not visible to anonymous learners.
