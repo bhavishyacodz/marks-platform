@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import MathField from "@/components/math-field";
 
 type QuestionRow = {
   id: string;
@@ -204,13 +205,13 @@ export default function AdminQuestionManager() {
                 </div>
                 <label style={labelStyle}>Chapter<input required value={form.chapter} onChange={(e) => setForm({ ...form, chapter: e.target.value })} style={inputStyle} /></label>
                 <label style={labelStyle}>Topic<input required value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} style={inputStyle} /></label>
-                <label style={labelStyle}>Question prompt<textarea required rows={4} value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} style={inputStyle} /></label>
-                {form.type === "mcq" && <label style={labelStyle}>Options (one per line, format: a | option text)<textarea rows={5} value={form.optionsText} onChange={(e) => setForm({ ...form, optionsText: e.target.value })} style={inputStyle} /></label>}
+                <MathField label="Question prompt" required rows={4} value={form.prompt} onChange={(value) => setForm({ ...form, prompt: value })} />
+                {form.type === "mcq" && <MathField label="Options (one per line, format: a | option text)" rows={5} value={form.optionsText} onChange={(value) => setForm({ ...form, optionsText: value })} />}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))", gap: 12 }}>
                   <label style={labelStyle}>Correct answer<input required value={form.answer} onChange={(e) => setForm({ ...form, answer: e.target.value })} style={inputStyle} placeholder={form.type === "mcq" ? "Option ID, e.g. a" : "Numeric value"} /></label>
                   {form.type === "numerical" && <label style={labelStyle}>Tolerance<input type="number" min="0" step="any" value={form.tolerance} onChange={(e) => setForm({ ...form, tolerance: e.target.value })} style={inputStyle} /></label>}
                 </div>
-                <label style={labelStyle}>Solution / explanation<textarea rows={4} value={form.solution} onChange={(e) => setForm({ ...form, solution: e.target.value })} style={inputStyle} /></label>
+                <MathField label="Solution / explanation" rows={4} value={form.solution} onChange={(value) => setForm({ ...form, solution: value })} />
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))", gap: 12 }}>
                   <label style={labelStyle}>Year (optional)<input type="number" min="2000" max="2100" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} style={inputStyle} /></label>
                   <label style={labelStyle}>Shift<input value={form.shift} onChange={(e) => setForm({ ...form, shift: e.target.value })} style={inputStyle} /></label>
