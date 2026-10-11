@@ -11,13 +11,16 @@
     "validate:syllabus": "node scripts/validate-syllabus.mjs",
     "validate": "npm run validate:questions && npm run validate:syllabus",
     "validate:import": "node scripts/validate-question-import.mjs",
-    "report:coverage": "node scripts/report-question-coverage.mjs"
+    "report:coverage": "node scripts/report-question-coverage.mjs",
+    "extract:pdf": "node scripts/extract-exam-pdf.mjs",
+    "draft:questions": "node scripts/draft-questions-from-pages.mjs"
   },
   "dependencies": {
     "katex": "^0.19.0",
     "next": "^15.5.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "pdfjs-dist": "^5.4.149"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
