@@ -42,3 +42,15 @@ Do not put an email, password, or service-role key in the SQL. Only register acc
 ## Database schema expectation
 
 The table setup should include `public.questions` and `public.admin_users`, Row Level Security enabled on both, a policy for anonymous/authenticated reading of published questions, and admin-only insert/update/delete policies. Use the SQL setup already run in the Supabase project; do not drop or truncate tables to apply this guide.
+
+
+## 5. Enable private question-image uploads
+
+The admin form supports JPG, PNG, and WebP files up to 5 MB. Files are uploaded to the private `question-images` bucket and the object path is stored in `public.questions.image_path`. The browser does not need a service-role key.
+
+1. Create the private `question-images` bucket in Storage, with a 5 MB size limit and image MIME types.
+2. Run the SQL policies for admin-only INSERT, UPDATE, and DELETE on `storage.objects` (bucket ID must be `question-images`).
+3. Run the migration in `supabase/migrations/202610110001_question_image_path.sql` in Supabase SQL Editor. It adds the nullable `image_path` column without changing existing rows.
+4. Deploy the Preview branch and test with an allowlisted admin account. Upload a small test diagram and save a draft.
+
+**Security note:** the bucket is private. Store only the object path, not a public URL. Any learner-facing display must request a short-lived signed URL or use an authenticated image endpoint; do not make the bucket public just to display images.
