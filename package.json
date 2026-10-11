@@ -13,7 +13,8 @@
     "validate:import": "node scripts/validate-question-import.mjs",
     "report:coverage": "node scripts/report-question-coverage.mjs",
     "extract:pdf": "node scripts/extract-exam-pdf.mjs",
-    "draft:questions": "node scripts/draft-questions-from-pages.mjs"
+    "draft:questions": "node scripts/draft-questions-from-pages.mjs",
+    "ocr:pdf": "node scripts/ocr-exam-pdf.mjs"
   },
   "dependencies": {
     "katex": "^0.19.0",
