@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { subjects, type Subject } from "@/data/demo";
 import { syllabusCatalogue } from "@/data/syllabus";
 import { isCorrectAnswer, questions } from "@/data/questions";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+
+type PublishedQuestion = { id: string; subject: Subject; chapter: string; topic: string; prompt: string; type: "mcq" | "numerical"; options: { id: string; text: string }[]; answer: string; solution: string; difficulty: "Easy" | "Medium" | "Hard"; year: number | null; shift: string; status: "verified" | "unverified"; source: string };
 
 
 type View = "chapters" | "topics" | "questions" | "practice" | "results" | "mistakebook" | "reviewqueue" | "progress" | "daily";
@@ -27,6 +30,37 @@ export default function Home() {
   const [progressLoaded, setProgressLoaded] = useState(false);
   const [attemptDates, setAttemptDates] = useState<Record<string, string>>({});
   const [dailyTarget, setDailyTarget] = useState(20);
+  const [publishedQuestions, setPublishedQuestions] = useState<PublishedQuestion[]>([]);
+  const [publishedLoading, setPublishedLoading] = useState(true);
+  const [publishedError, setPublishedError] = useState("");
+  const [publishedAnswers, setPublishedAnswers] = useState<Record<string, string>>({});
+  const [publishedChecked, setPublishedChecked] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPublishedQuestions() {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from("questions")
+          .select("id,subject,chapter,topic,prompt,type,options,answer,solution,difficulty,year,shift,status,publication_status")
+          .eq("publication_status", "published")
+          .limit(50);
+        if (error) throw error;
+        if (!cancelled) {
+          const rows = (data ?? []) as (PublishedQuestion & { publication_status: string })[];
+          setPublishedQuestions(rows.filter(row => row.publication_status === "published"));
+          setPublishedError("");
+        }
+      } catch {
+        if (!cancelled) setPublishedError("Published questions could not be loaded. Check the public-read policy and Supabase configuration.");
+      } finally {
+        if (!cancelled) setPublishedLoading(false);
+      }
+    }
+    void loadPublishedQuestions();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     try {
@@ -130,6 +164,7 @@ export default function Home() {
   return <main className="app-shell">
     <header className="topbar"><a className="brand" href="#" onClick={(e) => {e.preventDefault();setView("chapters");}}><span className="brand-mark">M</span><span>MARKS<span className="brand-dot">.</span></span></a><span className="beta-pill">BETA PREVIEW</span><span className="avatar" aria-label="Profile preview">S</span></header>
     <section className="welcome"><div className="eyebrow"><span className="eyebrow-dot"/> JEE MAIN PRACTICE WORKSPACE</div><h1>Practice smart.<br/><span>Track every step.</span></h1><p className="welcome-copy">Explore chapters, filter question sets by year and shift, and review solutions. Official PYQs are only marked verified after source checking.</p><div className="stats-row"><div className="stat-card"><span className="stat-icon blue">▦</span><div><strong>{syllabusCatalogue.length}</strong><span>Syllabus chapter entries</span></div></div><div className="stat-card"><span className="stat-icon green">✓</span><div><strong>{questions.filter(q=>q.status==="verified").length}</strong><span>Verified PYQs in this starter</span></div></div></div></section>
+    <section className="section-block published-admin-section"><div className="section-heading"><div><span className="section-kicker">FROM THE QUESTION MANAGER</span><h2>Recently published questions</h2></div><span className="muted-small">Live from Supabase</span></div>{publishedLoading ? <div className="empty-state">Loading published questions…</div> : publishedError ? <div className="notice-card"><strong>Live questions unavailable</strong><p>{publishedError}</p></div> : publishedQuestions.length === 0 ? <div className="empty-state">No questions have been published to the public question bank yet.</div> : <div className="question-set-list">{publishedQuestions.map(q => <article key={q.id} className="question-set-card published-question-card"><span className="question-number">✓</span><div className="chapter-info"><strong>{q.subject} · {q.chapter}</strong><span>{q.topic} · {q.difficulty} · {q.year ?? "Practice"} {q.shift ? `· ${q.shift}` : ""}</span><span className={q.status === "verified" ? "verified-pill" : "unverified-pill"}>{q.status === "verified" ? "Verified source" : "Practice / unverified"} · Published</span><p>{q.prompt}</p>{q.type === "mcq" ? <div className="options-list">{(q.options ?? []).map(option => <button type="button" key={option.id} className={`option ${publishedAnswers[q.id] === option.id ? "chosen" : ""} ${publishedChecked[q.id] && option.id === q.answer ? "correct" : ""} ${publishedChecked[q.id] && publishedAnswers[q.id] === option.id && option.id !== q.answer ? "incorrect" : ""}`} disabled={!!publishedChecked[q.id]} onClick={() => setPublishedAnswers(prev => ({ ...prev, [q.id]: option.id }))}><span className="option-letter">{option.id.toUpperCase()}</span><span>{option.text}</span>{publishedChecked[q.id] && option.id === q.answer && <span className="option-mark">✓</span>}</button>)}</div> : <label className="numerical-answer-field"><span>Enter numerical answer</span><input type="number" inputMode="decimal" value={publishedAnswers[q.id] ?? ""} disabled={!!publishedChecked[q.id]} onChange={e => setPublishedAnswers(prev => ({ ...prev, [q.id]: e.target.value }))} /></label>}{publishedChecked[q.id] && <div className="answer-explanation"><strong>{String(publishedAnswers[q.id] ?? "").trim().toLowerCase() === String(q.answer).trim().toLowerCase() ? "Answer checked" : `Correct answer: ${q.answer}`}</strong><p>{q.solution}</p></div>}{!publishedChecked[q.id] && <button className="primary-button full-button" disabled={!publishedAnswers[q.id]} onClick={() => setPublishedChecked(prev => ({ ...prev, [q.id]: true }))}>Check answer <span>✓</span></button>}</div></article>)}</div>}</section>
     <section className="section-block"><div className="section-heading"><div><span className="section-kicker">STEP 1</span><h2>Choose a subject</h2></div><span className="muted-small">Syllabus catalogue · starter</span></div><div className="subject-tabs" role="tablist" aria-label="Subjects">{subjects.map(item=><button key={item.name} role="tab" aria-selected={subject===item.name} className={`subject-tab ${subject===item.name?"active":""}`} onClick={()=>{setSubject(item.name);setQuery("");setView("chapters");}}><span className="subject-short">{item.short}</span><span className="subject-name">{item.name}</span><span className="subject-count">{syllabusCatalogue.filter(c=>c.subject===item.name&&questions.some(q=>q.subject===c.subject&&q.chapter===c.chapter)).length}/{syllabusCatalogue.filter(c=>c.subject===item.name).length} chapters with questions</span></button>)}</div></section>
     <section className="section-block chapter-section"><div className="section-heading"><div><span className="section-kicker">{view==="chapters"?"STEP 2":"CURRENT WORKFLOW"}</span><h2>{view==="chapters"?"Chapter practice":view==="topics"?activeChapter:view==="questions"?"Question sets":view==="practice"?"Practice question":view==="results"?"Test results":activeChapter}</h2></div>{view!=="chapters"&&<button className="back-link" onClick={()=>setView(view==="practice"?"questions":view==="questions"?"topics":"chapters")}>← Back</button>}</div>
     {view==="chapters"&&<><label className="search-box"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search chapters..."/>{query&&<button onClick={()=>setQuery("")} aria-label="Clear search">×</button>}</label><div className="chapter-list">{visibleChapters.map((c,i)=><button className="chapter-card" key={c.id} onClick={()=>openChapter(c.chapter)}><span className={`chapter-symbol symbol-${i%4}`}>{["◈","↗","⌁","∑"][i%4]}</span><span className="chapter-info"><strong>{c.chapter}</strong><span>{questions.filter(q => q.subject === c.subject && q.chapter === c.chapter).length} question(s) available · syllabus topics listed</span></span><span className="chapter-end"><span>{c.topics.length} topics</span><b>›</b></span></button>)}{!visibleChapters.length&&<div className="empty-state">No chapters match that search.</div>}</div></>}
