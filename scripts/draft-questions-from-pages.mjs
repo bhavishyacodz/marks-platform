@@ -44,23 +44,36 @@ for (const page of source.pages) {
 
     const optionIds = [...block.matchAll(/(?:^|\s)(\d{6,})\s*\./g)].map(m => m[1]);
     const cleaned = block.replace(pageHeading, "").replace(/\s+/g, " ").trim();
-    const hasPromptLikeText = /(?:Which|What|Find|Calculate|Determine|Select|Consider|If\s|Let\s|The\s|A\s|An\s|value|equal|correct|incorrect|\?)/i.test(cleaned);
-    const hasQuestionType = /Question\s*Type\s*:\s*(MCQ|Numerical|Integer|Multiple)/i.test(block);
+    const contentWithoutMetadata = block
+      .replace(/Question\s*Number\s*:\s*\d+/ig, " ")
+      .replace(/Question\s*Id\s*:\s*[A-Za-z0-9_-]+/ig, " ")
+      .replace(/Question\s*Type\s*:\s*[^\n]+/ig, " ")
+      .replace(/(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation|Options|Mandatory or Optional|Section Marks|Question Marks|Maximum Instruction Time|Question Shuffling Allowed|Is Section Default)\s*:\s*[^\n]+/ig, " ")
+      .replace(/\b\d{6,}\s*\./g, " ")
+      .replace(pageHeading, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const hasPromptLikeText = contentWithoutMetadata.length >= 35 &&
+      /[A-Za-z]{3,}/.test(contentWithoutMetadata) &&
+      !/^(?:no|yes|mcq|numerical|integer|multiple|vertical|horizontal)\b/i.test(contentWithoutMetadata);
+    const questionTypeMatch = block.match(/Question\s*Type\s*:\s*(MCQ|Numerical|Integer|Multiple(?:\s+Choice)?)/i);
+    const hasQuestionType = Boolean(questionTypeMatch);
     drafts.push({
       draftId: `draft-p${page.pageNumber}-q${number}-${sourceQuestionId}`,
       sourceQuestionId,
       displayedQuestionNumber: number,
       sourceFile: source.sourceFile || path.basename(inputPath),
       pageNumber: page.pageNumber,
-      questionTypeHint: (block.match(/Question\s*Type\s*:\s*([^\n]+)/i) || [])[1]?.trim().split(/\s{2,}/)[0] || null,
+      questionTypeHint: questionTypeMatch?.[1] || null,
       optionReferenceIds: [...new Set(optionIds)],
       extractedBlock: block,
-      extractedTextLooksComplete: hasPromptLikeText && block.length > 100,
+      extractedTextLooksComplete: hasPromptLikeText,
+      contentStatus: hasPromptLikeText ? "text-candidate-review" : "metadata-only-needs-page-image-or-OCR",
       hasQuestionTypeMetadata: hasQuestionType,
       status: "needs-human-review",
       warnings: [
         "Draft segmentation uses printed question metadata; it is not a verified question.",
-        ...(!hasPromptLikeText ? ["Question prompt may be missing or stored as an image."] : []),
+        ...(!hasPromptLikeText ? ["No reliable question prompt text detected after removing exam metadata; inspect the original page image or use OCR."] : []),
         ...(optionIds.length < 2 ? ["Fewer than two option reference IDs detected; options may be missing or image-based."] : []),
         "Answer key has not been matched; no answer or solution was inferred.",
         "Check the original PDF page for equations, diagrams, options, and reading order."
@@ -78,10 +91,14 @@ fs.writeFileSync(outputPath, JSON.stringify({
   method: "conservative metadata segmentation; no OCR or answer inference",
   pageCount: source.pageCount ?? source.pages.length,
   draftCount: drafts.length,
+  metadataOnlyCount: drafts.filter(d => d.contentStatus === "metadata-only-needs-page-image-or-OCR").length,
+  textCandidateReviewCount: drafts.filter(d => d.contentStatus === "text-candidate-review").length,
   drafts
 }, null, 2) + "\n");
 
 console.log(`Created ${drafts.length} question draft(s) from ${source.pages.length} page record(s).`);
+console.log(`Metadata-only drafts needing page-image/OCR review: ${drafts.filter(d => d.contentStatus === "metadata-only-needs-page-image-or-OCR").length}`);
+console.log(`Text-candidate drafts still needing review: ${drafts.filter(d => d.contentStatus === "text-candidate-review").length}`);
 console.log(`Saved review-only drafts to ${outputPath}`);
 console.log("Drafts are not import-ready or verified. No answers were inferred and nothing was published.");
 if (drafts.length === 0) {
