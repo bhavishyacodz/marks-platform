@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import MathField from "@/components/math-field";
+import { syllabusCatalogue } from "@/data/syllabus";
 
 type QuestionRow = {
   id: string;
@@ -214,12 +215,12 @@ export default function AdminQuestionManager() {
               <form onSubmit={saveQuestion} style={{ display: "grid", gap: 13 }}>
                 <label style={labelStyle}>Question ID (optional)<input value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} disabled={!!editingId} style={inputStyle} placeholder="Auto-generated if blank" /></label>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))", gap: 12 }}>
-                  <label style={labelStyle}>Subject<select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value as QuestionRow["subject"] })} style={inputStyle}><option>Physics</option><option>Chemistry</option><option>Mathematics</option></select></label>
+                  <label style={labelStyle}>Subject<select value={form.subject} onChange={(e) => { const subject = e.target.value as QuestionRow["subject"]; const first = syllabusCatalogue.find((item) => item.subject === subject); setForm({ ...form, subject, chapter: first?.chapter ?? "", topic: first?.topics[0] ?? "" }); }} style={inputStyle}><option>Physics</option><option>Chemistry</option><option>Mathematics</option></select></label>
                   <label style={labelStyle}>Difficulty<select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value as QuestionRow["difficulty"] })} style={inputStyle}><option>Easy</option><option>Medium</option><option>Hard</option></select></label>
                   <label style={labelStyle}>Question type<select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as QuestionRow["type"] })} style={inputStyle}><option value="mcq">Multiple choice</option><option value="numerical">Numerical</option></select></label>
                 </div>
-                <label style={labelStyle}>Chapter<input required value={form.chapter} onChange={(e) => setForm({ ...form, chapter: e.target.value })} style={inputStyle} /></label>
-                <label style={labelStyle}>Topic<input required value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} style={inputStyle} /></label>
+                <label style={labelStyle}>Chapter<select required value={form.chapter} onChange={(e) => { const chapter = e.target.value; const topics = syllabusCatalogue.find((item) => item.subject === form.subject && item.chapter === chapter)?.topics ?? []; setForm({ ...form, chapter, topic: topics.includes(form.topic) ? form.topic : topics[0] ?? "" }); }} style={inputStyle}><option value="">Choose an existing chapter</option>{syllabusCatalogue.filter((item) => item.subject === form.subject).map((item) => <option key={item.id} value={item.chapter}>{item.chapter}</option>)}</select></label>
+                <label style={labelStyle}>Topic<select required value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} style={inputStyle}><option value="">Choose an existing topic</option>{(syllabusCatalogue.find((item) => item.subject === form.subject && item.chapter === form.chapter)?.topics ?? []).map((topic) => <option key={topic} value={topic}>{topic}</option>)}</select><span style={{ fontWeight: 400, fontSize: 12 }}>Topics come from the syllabus catalogue. No need to create the same topic repeatedly.</span></label>
                 <MathField label="Question prompt" required rows={4} value={form.prompt} onChange={(value) => setForm({ ...form, prompt: value })} />
                 <div style={{ display: "grid", gap: 8, padding: 12, border: "1px dashed #b8c2d8", borderRadius: 12 }}>
                   <label style={labelStyle}>Question image / diagram (optional)
