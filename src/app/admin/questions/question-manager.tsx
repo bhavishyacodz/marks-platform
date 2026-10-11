@@ -18,6 +18,7 @@ type QuestionRow = {
   source_checked_at: string | null;
   source_notes: string | null;
   prompt: string;
+  image_path: string | null;
   type: "mcq" | "numerical";
   options: { id: string; text: string }[];
   answer: string;
@@ -30,7 +31,7 @@ type QuestionRow = {
 const blank = {
   id: "", subject: "Physics" as QuestionRow["subject"], chapter: "", topic: "",
   year: "", shift: "", status: "unverified" as QuestionRow["status"], source: "Original practice question",
-  source_url: "", source_checked_at: "", source_notes: "", prompt: "",
+  source_url: "", source_checked_at: "", source_notes: "", prompt: "", image_path: "",
   type: "mcq" as QuestionRow["type"], optionsText: "a | First option\nb | Second option\nc | Third option\nd | Fourth option",
   answer: "a", tolerance: "0.001", solution: "", difficulty: "Medium" as QuestionRow["difficulty"],
   publication_status: "draft" as QuestionRow["publication_status"],
@@ -45,6 +46,8 @@ export default function AdminQuestionManager() {
   const [form, setForm] = useState(blank);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [questionImage, setQuestionImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [notice, setNotice] = useState("Sign in with your authorized admin email to continue.");
 
   async function refresh() {
@@ -114,7 +117,7 @@ export default function AdminQuestionManager() {
       id: item.id, subject: item.subject, chapter: item.chapter, topic: item.topic,
       year: item.year == null ? "" : String(item.year), shift: item.shift, status: item.status,
       source: item.source, source_url: item.source_url ?? "", source_checked_at: item.source_checked_at ?? "",
-      source_notes: item.source_notes ?? "", prompt: item.prompt, type: item.type,
+      source_notes: item.source_notes ?? "", prompt: item.prompt, image_path: item.image_path ?? "", type: item.type,
       optionsText: (item.options ?? []).map((option) => option.id + " | " + option.text).join("\n"),
       answer: item.answer, tolerance: String(item.tolerance ?? 0.001), solution: item.solution,
       difficulty: item.difficulty, publication_status: item.publication_status,
@@ -134,12 +137,24 @@ export default function AdminQuestionManager() {
       });
     const id = form.id.trim() || (typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID() : "q-" + Date.now().toString(36));
+    let imagePath = form.image_path.trim() || null;
+    if (questionImage) {
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowedTypes.includes(questionImage.type) || questionImage.size > 5 * 1024 * 1024) {
+        setNotice("Choose a JPG, PNG, or WebP image up to 5 MB."); setBusy(false); return;
+      }
+      const safeName = questionImage.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+      const storagePath = `${id}/${Date.now()}-${safeName}`;
+      const upload = await supabase.storage.from("question-images").upload(storagePath, questionImage, { upsert: true, contentType: questionImage.type });
+      if (upload.error) { setNotice("Image upload failed: " + upload.error.message); setBusy(false); return; }
+      imagePath = upload.data.path;
+    }
     const payload = {
       id, subject: form.subject, chapter: form.chapter.trim(), topic: form.topic.trim(),
       year: form.year.trim() ? Number(form.year) : null, shift: form.shift.trim(),
       status: form.status, source: form.source.trim(), source_url: form.source_url.trim() || null,
       source_checked_at: form.source_checked_at || null, source_notes: form.source_notes.trim() || null,
-      prompt: form.prompt.trim(), type: form.type, options, answer: form.answer.trim(),
+      prompt: form.prompt.trim(), image_path: imagePath, type: form.type, options, answer: form.answer.trim(),
       tolerance: form.type === "numerical" ? Number(form.tolerance || 0) : null,
       solution: form.solution.trim(), difficulty: form.difficulty,
       publication_status: form.publication_status, updated_at: new Date().toISOString(),
@@ -154,7 +169,7 @@ export default function AdminQuestionManager() {
     if (result.error) setNotice("Save failed: " + result.error.message);
     else {
       setNotice(form.publication_status === "published" ? "Question published." : "Draft saved.");
-      setForm(blank); setEditingId(null); await refresh();
+      setForm(blank); setEditingId(null); setQuestionImage(null); setImagePreviewUrl(null); await refresh();
     }
     setBusy(false);
   }
@@ -206,6 +221,18 @@ export default function AdminQuestionManager() {
                 <label style={labelStyle}>Chapter<input required value={form.chapter} onChange={(e) => setForm({ ...form, chapter: e.target.value })} style={inputStyle} /></label>
                 <label style={labelStyle}>Topic<input required value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} style={inputStyle} /></label>
                 <MathField label="Question prompt" required rows={4} value={form.prompt} onChange={(value) => setForm({ ...form, prompt: value })} />
+                <div style={{ display: "grid", gap: 8, padding: 12, border: "1px dashed #b8c2d8", borderRadius: 12 }}>
+                  <label style={labelStyle}>Question image / diagram (optional)
+                    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setQuestionImage(file);
+                      setImagePreviewUrl(file ? URL.createObjectURL(file) : null);
+                    }} style={{ ...inputStyle, padding: 8 }} />
+                  </label>
+                  <p style={{ margin: 0, color: "#7b8497", fontSize: 12 }}>JPG, PNG or WebP · maximum 5 MB · stored in the private question-images bucket.</p>
+                  {imagePreviewUrl && <img src={imagePreviewUrl} alt="Selected question diagram preview" style={{ maxWidth: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 10 }} />}
+                  {form.image_path && <p style={{ margin: 0, fontSize: 12, overflowWrap: "anywhere" }}>Saved image: {form.image_path}</p>}
+                </div>
                 {form.type === "mcq" && <MathField label="Options (one per line, format: a | option text)" rows={5} value={form.optionsText} onChange={(value) => setForm({ ...form, optionsText: value })} />}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))", gap: 12 }}>
                   <label style={labelStyle}>Correct answer<input required value={form.answer} onChange={(e) => setForm({ ...form, answer: e.target.value })} style={inputStyle} placeholder={form.type === "mcq" ? "Option ID, e.g. a" : "Numeric value"} /></label>
