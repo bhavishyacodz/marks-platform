@@ -143,7 +143,8 @@ def read_pdf(path: Path) -> list[dict]:
             )
             chosen = ocr_text if use_ocr else text
             pages_out.append({
-                "_page": page,
+                # Save image bytes while the PDF and page are still open.
+                "_page_png": page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False).tobytes("png") if suspicious else None,
                 "page": i + 1,
                 "text": chosen,
                 "nativeText": text,
@@ -278,11 +279,10 @@ def normalize_date(value: str | None) -> str | None:
     return None
 
 
-def gemini_page_transcription(page, api_key: str, model: str) -> tuple[str | None, str | None]:
+def gemini_page_transcription(page_png: bytes, api_key: str, model: str) -> tuple[str | None, str | None]:
     """Return a clearly unverified image transcription; never replace source text."""
     try:
-        pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False)
-        image_b64 = base64.b64encode(pix.tobytes("png")).decode("ascii")
+        image_b64 = base64.b64encode(page_png).decode("ascii")
         prompt = (
             "Transcribe the visible JEE Main question text and every option exactly as printed. "
             "Preserve equations, signs, powers, roots, Greek letters and option labels. "
@@ -351,7 +351,8 @@ def main() -> int:
                 page_to_questions.setdefault(question["page"], []).append(question)
         for page_number, page_questions in page_to_questions.items():
             gemini_attempted += 1
-            transcription, error = gemini_page_transcription(paper_pages[page_number - 1].get("_page"), api_key, model) if paper_pages[page_number - 1].get("_page") else (None, "source page handle unavailable")
+            page_png = paper_pages[page_number - 1].get("_page_png")
+            transcription, error = gemini_page_transcription(page_png, api_key, model) if page_png else (None, "source page image unavailable")
             for question in page_questions:
                 question["geminiRecovery"] = {
                     "status": "transcribed-needs-human-review" if transcription else "failed",
