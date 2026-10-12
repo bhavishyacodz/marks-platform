@@ -12,6 +12,7 @@ import fitz
 
 QUESTION_MARKER = re.compile(r"Question\s*(?:Number\s*:\s*|No\.?\s*:?\s*)(\d+)", re.I)
 QUESTION_ID = re.compile(r"Question\s*Id\s*:\s*(\d+)", re.I)
+QUESTION_TYPE = re.compile(r"Question\s*Type\s*:\s*(MCQ|SA)\b", re.I)
 EXAM_DATE = re.compile(r"Exam\s*Date\s*:\s*([0-9.\-/]+)", re.I)
 EXAM_SHIFT = re.compile(r"Exam\s*Shift\s*:\s*(First|Second|Third|1st|2nd|3rd|\d+)", re.I)
 KEY_ROW = re.compile(r"(?<!\d)(\d{7,})(?:\s+|\s*[,|]\s*)(\d{7,})(?!\d)")
@@ -61,17 +62,24 @@ def parse_questions(pages: list[dict]) -> list[dict]:
             end = markers[i + 1].start() if i + 1 < len(markers) else len(text)
             chunk = text[start:end].strip()
             id_match = QUESTION_ID.search(chunk)
+            type_match = QUESTION_TYPE.search(chunk)
+            question_type = type_match.group(1).upper() if type_match else None
             flags = []
             if not id_match:
                 flags.append("question_id_not_found")
             # Keep this conservative: IDs and option IDs alone are not a question body.
             if len(chunk) < 180 or not re.search(r"\b(?:is|are|find|calculate|determine|which|what|value|given|equal|shown|consider|following)\b", chunk, re.I):
                 flags.append("question_body_may_be_missing_or_ocr_incomplete")
-            if not re.search(r"Options?\s*:", chunk, re.I):
+            # SA (numerical-answer) questions intentionally have no MCQ options.
+            # Only flag missing options when the source identifies the item as MCQ.
+            if question_type == "MCQ" and not re.search(r"Options?\s*:", chunk, re.I):
                 flags.append("options_not_detected")
+            elif question_type is None:
+                flags.append("question_type_not_detected")
             found.append({
                 "questionNumber": int(marker.group(1)),
                 "questionId": id_match.group(1) if id_match else None,
+                "questionType": question_type,
                 "page": page["page"],
                 "rawText": chunk,
                 "ocrUsedForPage": page.get("ocrUsed", False),
