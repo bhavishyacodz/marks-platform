@@ -1,0 +1,46 @@
+name: MARKS quality checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marks-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Build and evidence audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run question-quality evidence audit
+        run: npm run audit:question-quality
+
+      - name: Build production app
+        run: npm run build
