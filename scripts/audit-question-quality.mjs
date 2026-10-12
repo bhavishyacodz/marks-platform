@@ -16,6 +16,8 @@ function readStaticArray(filePath, variableName) {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
     if (ts.isNumericLiteral(node)) return Number(node.text);
     if (node.kind === ts.SyntaxKind.NullKeyword) return null;
+    if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
+    if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
     if (ts.isArrayLiteralExpression(node)) return node.elements.map(resolve);
     if (ts.isObjectLiteralExpression(node)) {
       const out = {};
