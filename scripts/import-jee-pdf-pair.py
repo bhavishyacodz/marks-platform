@@ -86,9 +86,40 @@ def read_pdf(path: Path) -> list[dict]:
             # Prefer OCR when native extraction is clearly metadata-only and OCR
             # has recovered substantially more readable content. Otherwise use the
             # content score as a conservative tie-breaker.
+            # Compare both candidate extractions at the question-chunk level too.
+            # A page can contain lots of selectable metadata while the actual stem/options
+            # are only recoverable from the scanned image. Page-wide scores can hide that.
+            def question_content_score(value: str) -> int:
+                markers = list(QUESTION_MARKER.finditer(value))
+                if not markers:
+                    return extraction_score(value)
+                score = 0
+                for index, marker in enumerate(markers):
+                    chunk = value[marker.start():(markers[index + 1].start() if index + 1 < len(markers) else len(value))]
+                    stem = re.split(r"Options?\\s*:", chunk, maxsplit=1, flags=re.I)[0]
+                    stem = QUESTION_MARKER.sub(" ", stem)
+                    stem = QUESTION_ID.sub(" ", stem)
+                    stem = QUESTION_TYPE.sub(" ", stem)
+                    stem = re.sub(r"(?im)^\\s*(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation)\\s*:\\s*.*$", " ", stem)
+                    stem = re.sub(r"\\b\\d{7,}\\b", " ", stem)
+                    meaningful_stem = re.sub(r"[^A-Za-z\\u0900-\\u097F]+", "", stem)
+                    score += min(len(meaningful_stem), 300)
+                    if len(meaningful_stem) < 12:
+                        score -= 80
+                    options = re.split(r"Options?\\s*:", chunk, maxsplit=1, flags=re.I)
+                    if QUESTION_TYPE.search(chunk) and QUESTION_TYPE.search(chunk).group(1).upper() == "MCQ":
+                        option_text = options[1] if len(options) > 1 else ""
+                        cleaned_options = re.sub(r"\\b\\d{7,}\\b|aglasem\\.com|Page\\s+\\d+\\s+of\\s+\\d+", "", option_text, flags=re.I)
+                        option_chars = len(re.sub(r"\\s+", "", cleaned_options))
+                        score += min(option_chars, 300)
+                        if option_chars < 12:
+                            score -= 80
+                return score
+
             use_ocr = bool(ocr_text) and (
                 (native_incomplete and ocr_content > native_content + 8)
                 or extraction_score(ocr_text) > extraction_score(text)
+                or question_content_score(ocr_text) > question_content_score(text)
             )
             chosen = ocr_text if use_ocr else text
             pages_out.append({
