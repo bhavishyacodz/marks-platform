@@ -85,6 +85,25 @@ jobs:
           ids = [q.get("questionId") for q in questions if q.get("questionId")]
           if len(ids) != len(set(ids)):
               raise SystemExit("BLOCKED: duplicate question IDs were extracted.")
+          invalid_review_states = [
+              q.get("questionNumber") for q in questions
+              if q.get("needsHumanReview") is not True
+              or q.get("answerKeyMatchStatus") not in {
+                  "question-id-match-needs-human-review",
+                  "ambiguous-key-id",
+                  "no-key-id-match",
+                  "blocked-source-mismatch",
+              }
+          ]
+          if invalid_review_states:
+              raise SystemExit(f"BLOCKED: candidates missing safe review-only answer-key status: {invalid_review_states}")
+          false_answer_claims = [
+              q.get("questionNumber") for q in questions
+              if q.get("answerKeyMatchStatus") != "question-id-match-needs-human-review"
+              and q.get("answerKeyCandidateOptionId") is not None
+          ]
+          if false_answer_claims:
+              raise SystemExit(f"BLOCKED: answer-key option attached without a unique ID candidate match: {false_answer_claims}")
           invalid_option_flags = [
               q.get("questionNumber") for q in questions
               if q.get("questionType") == "SA" and "options_not_detected" in q.get("reviewFlags", [])
