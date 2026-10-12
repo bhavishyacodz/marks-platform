@@ -39,6 +39,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
       - name: Install dependencies
         run: npm install
 
@@ -47,6 +52,9 @@ jobs:
 
       - name: Test question-quality evidence audit
         run: npm run test:question-quality
+
+      - name: Test PDF import review report
+        run: python -m unittest discover -s scripts -p 'test_*.py'
 
       - name: Run question-quality evidence audit
         run: npm run audit:question-quality:strict
