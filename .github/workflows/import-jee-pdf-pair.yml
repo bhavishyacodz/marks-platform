@@ -64,6 +64,28 @@ jobs:
             --label "$LABEL" \
             --out data/import/review-drafts
 
+      - name: Validate draft metadata and answer-key extraction
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          files = list(Path("data/import/review-drafts").glob("*.json"))
+          if len(files) != 1:
+              raise SystemExit(f"Expected exactly one review draft, found {len(files)}")
+          data = json.loads(files[0].read_text(encoding="utf-8"))
+          summary = data.get("summary", {})
+          exam = data.get("exam", {})
+          if summary.get("sourceMismatch") or data.get("status") == "blocked-source-mismatch":
+              raise SystemExit("BLOCKED: answer-key date/shift did not match the requested paper.")
+          if not exam.get("dateFromKey") or not exam.get("shiftFromKey"):
+              raise SystemExit("BLOCKED: answer-key date/shift metadata is missing.")
+          if summary.get("keyCandidatePairs", 0) < 1:
+              raise SystemExit("BLOCKED: no answer-key pairs were extracted.")
+          print(f"Validated metadata: {exam['dateFromKey']} shift {exam['shiftFromKey']}")
+          print(f"Review-only answer-key pairs: {summary['keyCandidatePairs']}")
+          print("Reminder: candidates still require visual verification; none are published.")
+          PY
+
       - name: Upload review draft artifact
         uses: actions/upload-artifact@v4
         with:
