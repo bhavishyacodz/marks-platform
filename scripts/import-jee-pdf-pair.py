@@ -87,12 +87,28 @@ def parse_questions(pages: list[dict]) -> list[dict]:
             flags = []
             if not id_match:
                 flags.append("question_id_not_found")
-            # Keep this conservative: IDs and option IDs alone are not a question body.
-            if len(chunk) < 180 or not re.search(r"\b(?:is|are|find|calculate|determine|which|what|value|given|equal|shown|consider|following)\b", chunk, re.I):
+            # Assess the actual stem before the Options section, not metadata such as
+            # "Question Mandatory: No" or IDs that can fool a keyword/length check.
+            stem = re.split(r"Options?\s*:", chunk, maxsplit=1, flags=re.I)[0]
+            stem = QUESTION_MARKER.sub("", stem)
+            stem = QUESTION_ID.sub("", stem)
+            stem = QUESTION_TYPE.sub("", stem)
+            stem = re.sub(r"(?im)^\s*(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation)\s*:\s*.*$", "", stem)
+            stem = re.sub(r"\b(?:aglasem\.com|Page\s+\d+\s+of\s+\d+)\b", "", stem, flags=re.I)
+            stem = re.sub(r"\b\d{7,}\b", "", stem)
+            meaningful_stem = re.sub(r"[^A-Za-z\u0900-\u097F]+", "", stem)
+            if len(meaningful_stem) < 12:
                 flags.append("question_body_may_be_missing_or_ocr_incomplete")
+            # Flag options whose extracted content is only IDs/watermarks or blank.
+            options_section = re.split(r"Options?\s*:", chunk, maxsplit=1, flags=re.I)
+            if question_type == "MCQ":
+                option_text = options_section[1] if len(options_section) > 1 else ""
+                cleaned_options = re.sub(r"\b\d{7,}\b|aglasem\.com|Page\s+\d+\s+of\s+\d+", "", option_text, flags=re.I)
+                cleaned_options = re.sub(r"\s+", "", cleaned_options)
+                if len(cleaned_options) < 12:
+                    flags.append("option_content_may_be_missing_or_ocr_incomplete")
             # SA (numerical-answer) questions intentionally have no MCQ options.
-            # Only flag missing options when the source identifies the item as MCQ.
-            if question_type == "MCQ" and not re.search(r"Options?\s*:", chunk, re.I):
+            if question_type == "MCQ" and len(options_section) == 1:
                 flags.append("options_not_detected")
             elif question_type is None:
                 flags.append("question_type_not_detected")
