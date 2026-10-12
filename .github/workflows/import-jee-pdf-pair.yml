@@ -9,7 +9,7 @@ on:
         default: data/source-papers/JEE-Main-2026-Question-Paper-B-Tech-2nd-Apr-Shift-2.pdf
         type: string
       key_path:
-        description: Optional repository path to a matching final answer key PDF; leave default to download the official Session-II final key
+        description: Repository path to the matching final answer key PDF already stored in the repository
         required: true
         default: data/source-papers/2026 mains session 2 answer key.pdf
         type: string
@@ -50,6 +50,7 @@ jobs:
       - name: Generate review-only draft
         env:
           PAPER_PATH: ${{ inputs.paper_path }}
+          KEY_PATH: ${{ inputs.key_path }}
           LABEL: ${{ inputs.label }}
         run: |
           python scripts/import-jee-pdf-pair.py \
