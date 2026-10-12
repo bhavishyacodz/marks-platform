@@ -258,19 +258,22 @@ def main() -> int:
     suspicious = sum(bool(q["reviewFlags"]) for q in questions)
     args.out.mkdir(parents=True, exist_ok=True)
     safe_label = re.sub(r"[^A-Za-z0-9._-]+", "-", label).strip("-")
-    # Preserve a source-page image for every flagged question so equations,
-    # diagrams, and text OCR cannot silently disappear from the review workflow.
+    # Preserve an original page image for EVERY question candidate, not only
+    # candidates whose OCR checks raised flags. OCR can be wrong without detecting it.
+    # Questions sharing a page share one image file to avoid duplicating large assets.
     asset_dir = args.out / (safe_label + "-page-images")
-    flagged_pages = sorted({q["page"] for q in questions if q["reviewFlags"]})
-    if flagged_pages:
+    question_pages = sorted({q["page"] for q in questions})
+    if question_pages:
         asset_dir.mkdir(parents=True, exist_ok=True)
         with fitz.open(args.paper) as source_pdf:
-            for page_number in flagged_pages:
+            for page_number in question_pages:
                 page_image = asset_dir / f"paper-page-{page_number:03d}.png"
-                source_pdf[page_number - 1].get_pixmap(matrix=fitz.Matrix(1.6, 1.6), alpha=False).save(page_image)
+                source_pdf[page_number - 1].get_pixmap(matrix=fitz.Matrix(2.0, 2.0), alpha=False).save(page_image)
+                image_ref = str(page_image.relative_to(args.out))
                 for q in questions:
-                    if q["page"] == page_number and q["reviewFlags"]:
-                        q["originalPageImage"] = str(page_image.relative_to(args.out))
+                    if q["page"] == page_number:
+                        q["originalPageImage"] = image_ref
+                        q["sourcePageRef"] = f"{args.paper.name}#page={page_number}"
     output = args.out / (safe_label + ".json")
     payload = {
         "schemaVersion": 2,
