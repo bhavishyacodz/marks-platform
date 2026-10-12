@@ -117,8 +117,9 @@ def parse_key(pages: list[dict], expected_date: str | None, expected_shift: str 
     pairs = []
     if selected:
         for line in selected[1].splitlines():
-            m = KEY_ROW.search(line)
-            if m:
+            # Several question/answer ID pairs can share one PDF text line.
+            # Capture every pair; keep all candidates review-only.
+            for m in KEY_ROW.finditer(line):
                 pairs.append({"questionId": m.group(1), "correctOptionId": m.group(2), "rawLine": line.strip(), "needsHumanReview": True})
     return {
         "examDate": selected[2] if selected else None,
@@ -133,7 +134,8 @@ def normalize_date(value: str | None) -> str | None:
         return None
     m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})-shift-\d+", value, re.I)
     if m:
-        return f"{m.group(3)}.{m.group(2)}.{m.group(1)}"
+        # Return ISO format to match canonical_date() and compare metadata consistently.
+        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
     return None
 
 def main() -> int:
