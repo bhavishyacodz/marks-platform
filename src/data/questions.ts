@@ -285,4 +285,28 @@ export const questions: Question[] = [
     answer: "c", solution: "Using sin²θ + cos²θ = 1, cos²θ = 1 − 9/25 = 16/25. Since θ is acute, cos θ is positive, so cos θ = 4/5."
   },
 
+  {
+    id: "jee-main-2026-04-02-shift-2-math-q2",
+    subject: "Mathematics",
+    chapter: "Complex Numbers & Quadratic Equations",
+    topic: "Complex numbers and algebra",
+    year: 2026,
+    shift: "2 April 2026 Shift 2",
+    status: "verified",
+    source: "NTA JEE Main 2026 Session 2 official paper and final answer key",
+    sourceUrl: "https://jeemain.nta.nic.in/",
+    sourceCheckedAt: "2026-10-12",
+    sourceNotes: "Source question ID 691121152 checked against the original NTA paper PDF (https://cdnbbsr.s3waas.gov.in/s3f8e59f4b2fe7c5705bf878bbd494ccdf/uploads/2026/04/20260409481957146.pdf, PDF page 2). Correct option ID 691121517 matched against the NTA final answer key for 2 April 2026, Shift 2 (https://cdnbbsr.s3waas.gov.in/s3f8e59f4b2fe7c5705bf878bbd494ccdf/uploads/2026/04/20260420409057044.pdf). Prompt is paraphrased; original is available at the linked official paper.",
+    prompt: "Two circles in the complex plane are given by |z| = r and |z − (3 + 4i)| = 5. The second circle lies entirely inside the first. If the minimum distance between points on their circumferences is 2, what is the maximum distance between points on the two circumferences?",
+    options: [
+      { id: "691121515", text: "12" },
+      { id: "691121516", text: "17" },
+      { id: "691121517", text: "22" },
+      { id: "691121518", text: "24" },
+    ],
+    answer: "691121517",
+    solution: "The centres are 5 units apart because |3 + 4i| = √(3² + 4²) = 5. The inner circle has radius 5. Since it lies inside the outer circle and the minimum circumference-to-circumference distance is 2, r − (5 + 5) = 2, so r = 12. The maximum distance is r + 5 + 5 = 22. The NTA final key identifies option ID 691121517, which is 22.",
+    difficulty: "Medium",
+  },
+
 ];
