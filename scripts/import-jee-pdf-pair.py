@@ -17,30 +17,50 @@ EXAM_DATE = re.compile(r"Exam\s*Date\s*:\s*([0-9.\-/]+)", re.I)
 EXAM_SHIFT = re.compile(r"Exam\s*Shift\s*:\s*(First|Second|Third|1st|2nd|3rd|\d+)", re.I)
 KEY_ROW = re.compile(r"(?<!\d)(\d{7,})(?:\s+|\s*[,|]\s*)(\d{7,})(?!\d)")
 
+def extraction_score(text: str) -> int:
+    """Prefer text that contains readable stems and option labels, not just IDs."""
+    markers = list(QUESTION_MARKER.finditer(text))
+    score = len(markers) * 2
+    score += len(re.findall(r"\\b(?:which|what|find|calculate|determine|consider|following|value|equal|shown|given|is|are)\\b", text, re.I)) * 3
+    score += len(re.findall(r"(?im)^\\s*(?:Option\\s*)?\\(?[A-D]\\)?[.)：:]\\s+", text)) * 4
+    score += len(re.findall(r"Options?\\s*:", text, re.I)) * 5
+    # Penalize pages dominated by metadata/IDs with no recognizable question body.
+    if markers and not re.search(r"\\b(?:which|what|find|calculate|determine|consider|following|value|equal|shown|given)\\b", text, re.I):
+        score -= 20 * len(markers)
+    return score
+
 def read_pdf(path: Path) -> list[dict]:
     pages_out = []
     with fitz.open(path) as pdf:
         for i, page in enumerate(pdf):
             text = page.get_text("text", sort=True).strip()
-            ocr_text = ""
-            # Some NTA-style PDFs contain selectable IDs but rasterized question bodies.
-            # OCR only sparse pages to avoid unnecessary runtime on ordinary text PDFs.
-            if len(text) < 900 or len(QUESTION_MARKER.findall(text)) == 0:
+            markers = list(QUESTION_MARKER.finditer(text))
+            # Trigger OCR not only for blank pages, but also pages where selectable
+            # question IDs exist while stems/options are rasterized or missing.
+            suspicious = len(text) < 900 or not markers
+            if markers:
+                chunks = [text[m.start():(markers[j + 1].start() if j + 1 < len(markers) else len(text))] for j, m in enumerate(markers)]
+                suspicious = suspicious or any(
+                    len(chunk) < 180 or (
+                        QUESTION_TYPE.search(chunk) and QUESTION_TYPE.search(chunk).group(1).upper() == "MCQ"
+                        and not re.search(r"Options?\\s*:", chunk, re.I)
+                    )
+                    for chunk in chunks
+                )
+            ocr_text, ocr_error = "", None
+            if suspicious:
                 try:
-                    ocr_text = page.get_textpage_ocr(language="eng", dpi=220, full=True).extractText().strip()
+                    ocr_text = page.get_textpage_ocr(language="eng", dpi=300, full=True).extractText().strip()
                 except Exception as exc:
-                    ocr_text = ""
                     ocr_error = f"{type(exc).__name__}: {exc}"
-                else:
-                    ocr_error = None
-            else:
-                ocr_error = None
-            chosen = ocr_text if len(ocr_text) > len(text) * 1.15 else text
+            use_ocr = bool(ocr_text) and extraction_score(ocr_text) > extraction_score(text)
+            chosen = ocr_text if use_ocr else text
             pages_out.append({
                 "page": i + 1,
                 "text": chosen,
                 "nativeText": text,
-                "ocrUsed": bool(ocr_text and chosen == ocr_text),
+                "ocrText": ocr_text,
+                "ocrUsed": use_ocr,
                 **({"ocrError": ocr_error} if ocr_error else {}),
             })
     return pages_out
@@ -185,7 +205,21 @@ def main() -> int:
         warnings.append(f"OCR failed on {ocr_errors} page(s); inspect those pages manually.")
     suspicious = sum(bool(q["reviewFlags"]) for q in questions)
     args.out.mkdir(parents=True, exist_ok=True)
-    output = args.out / (re.sub(r"[^A-Za-z0-9._-]+", "-", label).strip("-") + ".json")
+    safe_label = re.sub(r"[^A-Za-z0-9._-]+", "-", label).strip("-")
+    # Preserve a source-page image for every flagged question so equations,
+    # diagrams, and text OCR cannot silently disappear from the review workflow.
+    asset_dir = args.out / (safe_label + "-page-images")
+    flagged_pages = sorted({q["page"] for q in questions if q["reviewFlags"]})
+    if flagged_pages:
+        asset_dir.mkdir(parents=True, exist_ok=True)
+        with fitz.open(args.paper) as source_pdf:
+            for page_number in flagged_pages:
+                page_image = asset_dir / f"paper-page-{page_number:03d}.png"
+                source_pdf[page_number - 1].get_pixmap(matrix=fitz.Matrix(1.6, 1.6), alpha=False).save(page_image)
+                for q in questions:
+                    if q["page"] == page_number and q["reviewFlags"]:
+                        q["originalPageImage"] = str(page_image.relative_to(args.out))
+    output = args.out / (safe_label + ".json")
     payload = {
         "schemaVersion": 2,
         "status": "blocked-source-mismatch" if mismatch else "needs-human-review",
