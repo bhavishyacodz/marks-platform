@@ -6,7 +6,7 @@ interpret equations, diagrams, option order, or answer mapping. Nothing is verif
 or published by this script.
 """
 from __future__ import annotations
-import argparse, base64, hashlib, json, os, re, urllib.error, urllib.request
+import argparse, base64, hashlib, json, os, re, time, urllib.error, urllib.request
 from pathlib import Path
 import fitz
 
@@ -335,8 +335,20 @@ def gemini_pages_transcription(page_images: list[tuple[int, bytes]], api_key: st
             headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
             method="POST"
         )
-        with urllib.request.urlopen(request, timeout=120) as response:
-            result = json.loads(response.read().decode("utf-8"))
+        # Retry only transient service/rate errors with bounded backoff. Persistent
+        # errors remain visible; this does not rotate keys to bypass quota limits.
+        result = None
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(request, timeout=120) as response:
+                    result = json.loads(response.read().decode("utf-8"))
+                break
+            except urllib.error.HTTPError as exc:
+                if exc.code not in (429, 500, 502, 503, 504) or attempt == 2:
+                    raise
+                time.sleep(2 ** (attempt + 1))
+        if result is None:
+            return None, "Gemini transient retries exhausted"
         text_parts = [
             part["text"]
             for candidate in result.get("candidates", [])
