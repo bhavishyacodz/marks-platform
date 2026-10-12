@@ -89,9 +89,14 @@ def parse_questions(pages: list[dict]) -> list[dict]:
 def canonical_date(value: str | None) -> str | None:
     if not value:
         return None
-    m = re.fullmatch(r"(\d{2})[.\-/](\d{2})[.\-/](\d{4})", value.strip())
-    if m:
-        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    value = value.strip()
+    # Accept both ISO labels (YYYY-MM-DD) and dates printed in NTA PDFs (DD.MM.YYYY).
+    iso = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", value)
+    if iso:
+        return f"{iso.group(1)}-{iso.group(2)}-{iso.group(3)}"
+    printed = re.fullmatch(r"(\d{2})[.\-/](\d{2})[.\-/](\d{4})", value)
+    if printed:
+        return f"{printed.group(3)}-{printed.group(2)}-{printed.group(1)}"
     return None
 
 def canonical_shift(value: str | None) -> str | None:
