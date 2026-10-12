@@ -55,7 +55,7 @@ export const questions: Question[] = [
     topic: "Complex numbers and algebra",
     year: 2026,
     shift: "2 April 2026 Shift 2",
-    status: "verified",
+    status: "unverified",
     source: "NTA JEE Main 2026 Session 2 official paper and final answer key",
     sourceUrl: "https://jeemain.nta.nic.in/",
     sourceCheckedAt: "2026-10-12",
