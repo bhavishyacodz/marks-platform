@@ -11,7 +11,7 @@ on:
       key_path:
         description: Repository path to the matching final answer key PDF already stored in the repository
         required: true
-        default: data/source-papers/2026 mains session 2 answer key.pdf
+        default: data/source-papers/20260420409057044.pdf
         type: string
       label:
         description: Label for the generated review draft
