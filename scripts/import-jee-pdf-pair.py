@@ -65,7 +65,31 @@ def read_pdf(path: Path) -> list[dict]:
                     ocr_text = page.get_textpage_ocr(language="eng", dpi=300, full=True).extractText().strip()
                 except Exception as exc:
                     ocr_error = f"{type(exc).__name__}: {exc}"
-            use_ocr = bool(ocr_text) and extraction_score(ocr_text) > extraction_score(text)
+            # Compare actual readable content, not marker counts: OCR often omits
+            # the exact "Question Number" labels but recovers the stem/options that
+            # are absent from the selectable PDF text layer.
+            def readable_content_length(value: str) -> int:
+                body = QUESTION_MARKER.sub(" ", value)
+                body = QUESTION_ID.sub(" ", body)
+                body = QUESTION_TYPE.sub(" ", body)
+                body = re.sub(
+                    r"(?im)^\\s*(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation)\\s*:\\s*.*$",
+                    " ", body
+                )
+                body = re.sub(r"\\b(?:aglasem\\.com|Page\\s+\\d+\\s+of\\s+\\d+)\\b", " ", body, flags=re.I)
+                body = re.sub(r"\\b\\d{7,}\\b", " ", body)
+                return len(re.sub(r"[^A-Za-z\\u0900-\\u097F]+", "", body))
+
+            native_content = readable_content_length(text)
+            ocr_content = readable_content_length(ocr_text)
+            native_incomplete = native_content < max(24, 12 * max(1, len(markers)))
+            # Prefer OCR when native extraction is clearly metadata-only and OCR
+            # has recovered substantially more readable content. Otherwise use the
+            # content score as a conservative tie-breaker.
+            use_ocr = bool(ocr_text) and (
+                (native_incomplete and ocr_content > native_content + 8)
+                or extraction_score(ocr_text) > extraction_score(text)
+            )
             chosen = ocr_text if use_ocr else text
             pages_out.append({
                 "page": i + 1,
