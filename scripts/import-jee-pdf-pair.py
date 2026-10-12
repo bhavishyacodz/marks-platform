@@ -86,22 +86,48 @@ def parse_questions(pages: list[dict]) -> list[dict]:
             result.append(item)
     return result
 
-def parse_key(pages: list[dict]) -> dict:
-    text = "\n".join(p["text"] for p in pages)
-    date = EXAM_DATE.search(text)
-    shift = EXAM_SHIFT.search(text)
-    pairs = []
-    for line in text.splitlines():
-        m = KEY_ROW.search(line)
-        if m:
-            pairs.append({"questionId": m.group(1), "correctOptionId": m.group(2), "rawLine": line.strip(), "needsHumanReview": True})
-    return {
-        "examDate": date.group(1) if date else None,
-        "examShift": shift.group(1) if shift else None,
-        "candidatePairs": pairs,
-        "warning": "Candidate pairs only. Confirm date, shift, subject section, row alignment and all IDs against the official final key.",
-    }
+def canonical_date(value: str | None) -> str | None:
+    if not value:
+        return None
+    m = re.fullmatch(r"(\d{2})[.\-/](\d{2})[.\-/](\d{4})", value.strip())
+    if m:
+        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    return None
 
+def canonical_shift(value: str | None) -> str | None:
+    if not value:
+        return None
+    value = value.strip().lower()
+    return {"first": "1", "1st": "1", "second": "2", "2nd": "2", "third": "3", "3rd": "3", "1": "1", "2": "2", "3": "3"}.get(value)
+
+def parse_key(pages: list[dict], expected_date: str | None, expected_shift: str | None) -> dict:
+    # Never combine the whole PDF: it contains multiple dates/shifts and locations.
+    target_date = canonical_date(expected_date)
+    target_shift = canonical_shift(expected_shift)
+    records = []
+    for page in pages:
+        text = page["text"]
+        date = EXAM_DATE.search(text)
+        shift = EXAM_SHIFT.search(text)
+        page_date = canonical_date(date.group(1)) if date else None
+        page_shift = canonical_shift(shift.group(1)) if shift else None
+        records.append((page, text, page_date, page_shift))
+    matching = [r for r in records if target_date and target_shift and r[2] == target_date and r[3] == target_shift]
+    selected = next((r for r in matching if re.search(r"centers? in india|centres? in india|india", r[1], re.I)), matching[0] if matching else None)
+    pairs = []
+    if selected:
+        for line in selected[1].splitlines():
+            m = KEY_ROW.search(line)
+            if m:
+                pairs.append({"questionId": m.group(1), "correctOptionId": m.group(2), "rawLine": line.strip(), "needsHumanReview": True})
+    return {
+        "examDate": selected[2] if selected else None,
+        "examShift": selected[3] if selected else None,
+        "selectedPage": selected[0]["page"] if selected else None,
+        "matchingPagesFound": len(matching),
+        "candidatePairs": pairs,
+        "warning": "Review-only candidates from one matching metadata page. Confirm subject, row alignment, IDs and numerical answers against the official final key. No answers are verified.",
+    }
 def normalize_date(value: str | None) -> str | None:
     if not value:
         return None
@@ -121,16 +147,18 @@ def main() -> int:
         if not path.is_file() or path.suffix.lower() != ".pdf":
             parser.error(f"expected an existing PDF: {path}")
     paper_pages, key_pages = read_pdf(args.paper), read_pdf(args.key)
-    questions, key = parse_questions(paper_pages), parse_key(key_pages)
     label = args.label or args.paper.stem
     expected_date = normalize_date(label)
+    shift_match = re.search(r"shift-(\d+)", label, re.I)
+    expected_shift = shift_match.group(1) if shift_match else None
+    questions, key = parse_questions(paper_pages), parse_key(key_pages, expected_date, expected_shift)
     warnings = [
         "This is a draft extraction, not a publishable question bank.",
         "Do not infer option text, diagrams, chapter/topic or answer from IDs alone.",
         "Check every question and all four options against page images; verify answers against the matching final key.",
         "OCR is a best-effort text aid; equations, diagrams, superscripts, subscripts and option order require visual review.",
     ]
-    mismatch = bool(expected_date and key["examDate"] and expected_date != key["examDate"])
+    mismatch = (not expected_date or not expected_shift or not key["examDate"] or not key["examShift"] or expected_date != key["examDate"] or expected_shift != key["examShift"])
     if mismatch:
         warnings.insert(0, f"BLOCKING SOURCE MISMATCH: label expects {expected_date}, but key extraction reports {key['examDate']}. Do not use these answer-key candidates.")
     if not key["examDate"] or not key["examShift"]:
