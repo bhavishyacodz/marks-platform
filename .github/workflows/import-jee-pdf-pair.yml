@@ -95,6 +95,19 @@ jobs:
               q.get("questionNumber") for q in questions
               if q.get("questionType") == "MCQ" and "options_not_detected" in q.get("reviewFlags", [])
           ]
+          missing_source_images = [
+              q.get("questionNumber") for q in questions
+              if not q.get("originalPageImage")
+              or not (Path("data/import/review-drafts") / q["originalPageImage"]).is_file()
+          ]
+          missing_source_refs = [
+              q.get("questionNumber") for q in questions
+              if not q.get("sourcePageRef")
+          ]
+          if missing_source_images:
+              raise SystemExit(f"BLOCKED: original page image missing for question candidates: {missing_source_images}")
+          if missing_source_refs:
+              raise SystemExit(f"BLOCKED: source page reference missing for question candidates: {missing_source_refs}")
           print(f"Validated metadata: {exam['dateFromKey']} shift {exam['shiftFromKey']}")
           print(f"Question candidates: {len(questions)}; unique IDs: {len(set(ids))}")
           print(f"MCQ candidates needing option review: {mcq_missing_options}")
