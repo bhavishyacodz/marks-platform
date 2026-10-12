@@ -13,6 +13,7 @@
     "validate:import": "node scripts/validate-question-import.mjs",
     "audit:question-quality": "node scripts/audit-question-quality.mjs",
     "audit:question-quality:strict": "node scripts/audit-question-quality.mjs --strict",
+    "test:question-quality": "node --test scripts/audit-question-quality.test.mjs",
     "import:jee-pdf": "python scripts/import-jee-pdf-pair.py",
     "report:coverage": "node scripts/report-question-coverage.mjs"
   },
