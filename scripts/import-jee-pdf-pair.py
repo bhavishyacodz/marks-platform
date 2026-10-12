@@ -73,12 +73,12 @@ def read_pdf(path: Path) -> list[dict]:
                 body = QUESTION_ID.sub(" ", body)
                 body = QUESTION_TYPE.sub(" ", body)
                 body = re.sub(
-                    r"(?im)^\\s*(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation)\\s*:\\s*.*$",
+                    r"(?im)^\s*(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation)\s*:\s*.*$",
                     " ", body
                 )
-                body = re.sub(r"\\b(?:aglasem\\.com|Page\\s+\\d+\\s+of\\s+\\d+)\\b", " ", body, flags=re.I)
-                body = re.sub(r"\\b\\d{7,}\\b", " ", body)
-                return len(re.sub(r"[^A-Za-z\\u0900-\\u097F]+", "", body))
+                body = re.sub(r"\b(?:aglasem\.com|Page\s+\d+\s+of\s+\d+)\b", " ", body, flags=re.I)
+                body = re.sub(r"\b\d{7,}\b", " ", body)
+                return len(re.sub(r"[^A-Za-z\u0900-\u097F]+", "", body))
 
             native_content = readable_content_length(text)
             ocr_content = readable_content_length(ocr_text)
