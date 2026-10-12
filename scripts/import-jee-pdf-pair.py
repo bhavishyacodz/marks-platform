@@ -341,7 +341,7 @@ def main() -> int:
     questions, key = parse_questions(paper_pages), parse_key(key_pages, expected_date, expected_shift)
     gemini_attempted = gemini_succeeded = gemini_failed = 0
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip() or "gemini-3.8-flash"
     if api_key:
         # Transcribe only source pages containing flagged questions. Results stay
         # separate from rawText and are never treated as verified or auto-published.
