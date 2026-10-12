@@ -144,7 +144,7 @@ def read_pdf(path: Path) -> list[dict]:
             chosen = ocr_text if use_ocr else text
             pages_out.append({
                 # Save image bytes while the PDF and page are still open.
-                "_page_png": page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False).tobytes("png") if suspicious else None,
+                "_page_png": page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False).tobytes("png"),
                 "page": i + 1,
                 "text": chosen,
                 "nativeText": text,
