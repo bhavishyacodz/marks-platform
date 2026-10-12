@@ -20,6 +20,17 @@ export type Question = {
   sourceCheckedAt?: string;
   /** Brief audit note naming what was cross-checked. */
   sourceNotes?: string;
+  /** Exact official paper page reference, e.g. a PDF filename and page number. */
+  sourcePageRef?: string;
+  /** Stable reference/path for the original paper-page image fallback. */
+  originalPageImage?: string;
+  /** Explicit visual review checklist; required before status can be verified. */
+  questionTextChecked?: boolean;
+  optionsChecked?: boolean;
+  answerKeyChecked?: boolean;
+  solutionIndependentlyChecked?: boolean;
+  /** Set true only after confirming the diagram, or confirming none is present. */
+  diagramChecked?: boolean;
   prompt: string;
   type?: QuestionType;
   options: QuestionOption[];
