@@ -106,6 +106,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jee-import-review-draft
-          path: data/import/review-drafts/*.json
+          path: data/import/review-drafts/**
           if-no-files-found: error
           retention-days: 14
