@@ -284,17 +284,38 @@ def gemini_page_transcription(page_png: bytes, api_key: str, model: str) -> tupl
     try:
         image_b64 = base64.b64encode(page_png).decode("ascii")
         prompt = (
-            "Transcribe the visible JEE Main question text and every option exactly as printed. "
-            "Preserve equations, signs, powers, roots, Greek letters and option labels. "
-            "Do not solve the question or infer missing content. Use [UNCLEAR] where unreadable. "
-            "Return plain text only."
+            "Extract every visible JEE Main question from this page. Transcribe the stem and options "
+            "exactly as printed; preserve equations, signs, powers, roots, Greek letters and option labels. "
+            "Never solve or infer missing content. Use [UNCLEAR] for unreadable text. "
+            "question_id must be the official numeric Question Id, not question number, page number, or option ID. "
+            "For MCQ, return the visible options in printed order; do not invent missing options. "
+            "For numerical-answer questions, options may be an empty array. has_diagram is true when a diagram/graph/figure "
+            "is present or needed to understand the question. Keep each question separate."
         )
+        schema = {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "question_id": {"type": "STRING"},
+                    "stem": {"type": "STRING"},
+                    "options": {"type": "ARRAY", "items": {"type": "STRING"}},
+                    "has_diagram": {"type": "BOOLEAN"}
+                },
+                "required": ["question_id", "stem", "options", "has_diagram"]
+            }
+        }
         body = {
             "contents": [{"parts": [
                 {"text": prompt},
                 {"inline_data": {"mime_type": "image/png", "data": image_b64}}
             ]}],
-            "generationConfig": {"temperature": 0, "maxOutputTokens": 4096}
+            "generationConfig": {
+                "temperature": 0,
+                "maxOutputTokens": 4096,
+                "responseMimeType": "application/json",
+                "responseSchema": schema
+            }
         }
         endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent"
         request = urllib.request.Request(
@@ -312,7 +333,25 @@ def gemini_page_transcription(page_png: bytes, api_key: str, model: str) -> tupl
         recovered = "\\n".join(text_parts).strip()
         if not recovered:
             return None, "Gemini returned no transcription text"
-        return recovered, None
+        try:
+            parsed = json.loads(recovered)
+        except json.JSONDecodeError as exc:
+            return None, f"Gemini returned invalid JSON: {exc}"
+        if not isinstance(parsed, list):
+            return None, "Gemini JSON response was not an array"
+        required = {"question_id", "stem", "options", "has_diagram"}
+        for index, item in enumerate(parsed):
+            if not isinstance(item, dict) or not required.issubset(item):
+                return None, f"Gemini question {index + 1} is missing required fields"
+            if not isinstance(item["question_id"], str) or not isinstance(item["stem"], str):
+                return None, f"Gemini question {index + 1} has invalid ID/stem types"
+            if not isinstance(item["options"], list) or not all(isinstance(opt, str) for opt in item["options"]):
+                return None, f"Gemini question {index + 1} has invalid options"
+            if not isinstance(item["has_diagram"], bool):
+                return None, f"Gemini question {index + 1} has invalid diagram flag"
+            if not item["stem"].strip():
+                return None, f"Gemini question {index + 1} has an empty stem"
+        return json.dumps(parsed, ensure_ascii=False), None
     except urllib.error.HTTPError as exc:
         # Do not include request headers or secrets in logs/errors.
         try:
@@ -349,10 +388,14 @@ def main() -> int:
         for question in questions:
             if question.get("reviewFlags"):
                 page_to_questions.setdefault(question["page"], []).append(question)
+        quota_or_service_blocked = False
         for page_number, page_questions in page_to_questions.items():
             gemini_attempted += 1
             page_png = paper_pages[page_number - 1].get("_page_png")
-            transcription, error = gemini_page_transcription(page_png, api_key, model) if page_png else (None, "source page image unavailable")
+            if quota_or_service_blocked:
+                transcription, error = None, "Skipped after earlier Gemini quota/service error; retry later"
+            else:
+                transcription, error = gemini_page_transcription(page_png, api_key, model) if page_png else (None, "source page image unavailable")
             for question in page_questions:
                 question["geminiRecovery"] = {
                     "status": "transcribed-needs-human-review" if transcription else "failed",
@@ -366,6 +409,8 @@ def main() -> int:
                 gemini_succeeded += 1
             else:
                 gemini_failed += 1
+                if error and ("Gemini HTTP 429" in error or "Gemini HTTP 503" in error):
+                    quota_or_service_blocked = True
     warnings = [
         "This is a draft extraction, not a publishable question bank.",
         "Do not infer option text, diagrams, chapter/topic or answer from IDs alone.",
