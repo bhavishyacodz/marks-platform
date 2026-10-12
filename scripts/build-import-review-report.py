@@ -38,6 +38,13 @@ def build_report(source: Path, output: Path) -> None:
         flag_html = "".join(f"<li>{esc(flag)}</li>" for flag in flags) or "<li>No automatic flags; visual review is still required.</li>"
         candidate = q.get("answerKeyCandidateOptionId")
         candidate_text = esc(candidate) if candidate is not None else "No unique candidate"
+        recovery = q.get("geminiRecovery") or {}
+        recovery_text = recovery.get("text")
+        recovery_html = (
+            f'<h3>Gemini image transcription — UNVERIFIED</h3><p class="notice">Model: {esc(recovery.get("model"))}. Compare every symbol and option against the source image; never treat this as verified text.</p><pre>{esc(recovery_text)}</pre>'
+            if recovery_text else
+            f'<h3>Gemini image transcription</h3><p class="warning">{esc(recovery.get("error") or "Not attempted (GEMINI_API_KEY may be missing, or this question did not trigger recovery).")}</p>'
+        )
         cards.append(f"""
 <section class="question">
   <div class="heading"><h2>Question {esc(q.get('questionNumber'))}</h2>
@@ -47,6 +54,7 @@ def build_report(source: Path, output: Path) -> None:
     <div><h3>Original source page</h3>{image_html}</div>
     <div><h3>Extracted text (OCR may be wrong)</h3>
       <pre>{esc(q.get('rawText', ''))}</pre>
+      {recovery_html}
       <h3>Answer-key candidate — NOT VERIFIED</h3>
       <p>{candidate_text} · {esc(q.get('answerKeyMatchStatus', 'status missing'))}</p>
       <h3>Review flags</h3><ul>{flag_html}</ul>
