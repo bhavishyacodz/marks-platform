@@ -83,6 +83,25 @@ def read_pdf(path: Path) -> list[dict]:
             native_content = readable_content_length(text)
             ocr_content = readable_content_length(ocr_text)
             native_incomplete = native_content < max(24, 12 * max(1, len(markers)))
+            # If selectable text has question IDs but no actual stem, it must not
+            # win merely because it contains lots of metadata and option IDs.
+            def has_meaningful_question_stems(value: str) -> bool:
+                value_markers = list(QUESTION_MARKER.finditer(value))
+                if not value_markers:
+                    return readable_content_length(value) >= 40
+                for j, value_marker in enumerate(value_markers):
+                    value_chunk = value[value_marker.start():(value_markers[j + 1].start() if j + 1 < len(value_markers) else len(value))]
+                    value_stem = re.split(r"Options?\\s*:", value_chunk, maxsplit=1, flags=re.I)[0]
+                    value_stem = QUESTION_MARKER.sub(" ", value_stem)
+                    value_stem = QUESTION_ID.sub(" ", value_stem)
+                    value_stem = QUESTION_TYPE.sub(" ", value_stem)
+                    value_stem = re.sub(r"(?im)^\\s*(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation)\\s*:\\s*.*$", " ", value_stem)
+                    value_stem = re.sub(r"\\b\\d{7,}\\b", " ", value_stem)
+                    if len(re.sub(r"[^A-Za-z\\u0900-\\u097F]+", "", value_stem)) >= 12:
+                        return True
+                return False
+            native_has_stem = has_meaningful_question_stems(text)
+            ocr_has_stem = has_meaningful_question_stems(ocr_text)
             # Prefer OCR when native extraction is clearly metadata-only and OCR
             # has recovered substantially more readable content. Otherwise use the
             # content score as a conservative tie-breaker.
@@ -117,7 +136,8 @@ def read_pdf(path: Path) -> list[dict]:
                 return score
 
             use_ocr = bool(ocr_text) and (
-                (native_incomplete and ocr_content > native_content + 8)
+                (not native_has_stem and ocr_has_stem)
+                or (native_incomplete and ocr_content > native_content + 8)
                 or extraction_score(ocr_text) > extraction_score(text)
                 or question_content_score(ocr_text) > question_content_score(text)
             )
