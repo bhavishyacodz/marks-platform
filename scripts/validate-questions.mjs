@@ -101,7 +101,7 @@ for (const [index, item] of questions.entries()) {
         report(label, "sourceUrl must be a valid URL.");
       }
     }
-    if (typeof checkedAt !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(checkedAt) || Number.isNaN(Date.parse(checkedAt))) {
+    if (typeof checkedAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(checkedAt) || Number.isNaN(Date.parse(checkedAt))) {
       report(label, "verified questions must include sourceCheckedAt in YYYY-MM-DD format.");
     }
     if (typeof notes !== "string" || !notes.trim()) {
