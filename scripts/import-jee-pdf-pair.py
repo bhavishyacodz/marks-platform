@@ -21,11 +21,11 @@ def extraction_score(text: str) -> int:
     """Prefer text that contains readable stems and option labels, not just IDs."""
     markers = list(QUESTION_MARKER.finditer(text))
     score = len(markers) * 2
-    score += len(re.findall(r"\\b(?:which|what|find|calculate|determine|consider|following|value|equal|shown|given|is|are)\\b", text, re.I)) * 3
-    score += len(re.findall(r"(?im)^\\s*(?:Option\\s*)?\\(?[A-D]\\)?[.)：:]\\s+", text)) * 4
-    score += len(re.findall(r"Options?\\s*:", text, re.I)) * 5
+    score += len(re.findall(r"\b(?:which|what|find|calculate|determine|consider|following|value|equal|shown|given|is|are)\b", text, re.I)) * 3
+    score += len(re.findall(r"(?im)^\s*(?:Option\s*)?\(?[A-D]\)?[.)：:]\s+", text)) * 4
+    score += len(re.findall(r"Options?\s*:", text, re.I)) * 5
     # Penalize pages dominated by metadata/IDs with no recognizable question body.
-    if markers and not re.search(r"\\b(?:which|what|find|calculate|determine|consider|following|value|equal|shown|given)\\b", text, re.I):
+    if markers and not re.search(r"\b(?:which|what|find|calculate|determine|consider|following|value|equal|shown|given)\b", text, re.I):
         score -= 20 * len(markers)
     return score
 
@@ -43,7 +43,7 @@ def read_pdf(path: Path) -> list[dict]:
                 suspicious = suspicious or any(
                     len(chunk) < 180 or (
                         QUESTION_TYPE.search(chunk) and QUESTION_TYPE.search(chunk).group(1).upper() == "MCQ"
-                        and not re.search(r"Options?\\s*:", chunk, re.I)
+                        and not re.search(r"Options?\s*:", chunk, re.I)
                     )
                     for chunk in chunks
                 )
