@@ -11,6 +11,7 @@
     "validate:syllabus": "node scripts/validate-syllabus.mjs",
     "validate": "npm run validate:questions && npm run validate:syllabus",
     "validate:import": "node scripts/validate-question-import.mjs",
+    "import:jee-pdf": "python scripts/import-jee-pdf-pair.py",
     "report:coverage": "node scripts/report-question-coverage.mjs"
   },
   "dependencies": {
