@@ -81,9 +81,25 @@ jobs:
               raise SystemExit("BLOCKED: answer-key date/shift metadata is missing.")
           if summary.get("keyCandidatePairs", 0) < 1:
               raise SystemExit("BLOCKED: no answer-key pairs were extracted.")
+          questions = data.get("questions", [])
+          ids = [q.get("questionId") for q in questions if q.get("questionId")]
+          if len(ids) != len(set(ids)):
+              raise SystemExit("BLOCKED: duplicate question IDs were extracted.")
+          invalid_option_flags = [
+              q.get("questionNumber") for q in questions
+              if q.get("questionType") == "SA" and "options_not_detected" in q.get("reviewFlags", [])
+          ]
+          if invalid_option_flags:
+              raise SystemExit(f"BLOCKED: numerical-answer questions were incorrectly flagged as MCQ: {invalid_option_flags}")
+          mcq_missing_options = [
+              q.get("questionNumber") for q in questions
+              if q.get("questionType") == "MCQ" and "options_not_detected" in q.get("reviewFlags", [])
+          ]
           print(f"Validated metadata: {exam['dateFromKey']} shift {exam['shiftFromKey']}")
+          print(f"Question candidates: {len(questions)}; unique IDs: {len(set(ids))}")
+          print(f"MCQ candidates needing option review: {mcq_missing_options}")
           print(f"Review-only answer-key pairs: {summary['keyCandidatePairs']}")
-          print("Reminder: candidates still require visual verification; none are published.")
+          print("Reminder: incomplete question bodies still need page-image review; no answers are verified or published.")
           PY
 
       - name: Upload review draft artifact
