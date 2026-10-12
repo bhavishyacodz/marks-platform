@@ -10,11 +10,11 @@ import argparse, hashlib, json, re
 from pathlib import Path
 import fitz
 
-QUESTION_MARKER = re.compile(r"Question\\s*(?:Number\\s*:\\s*|No\\.?\\s*:?\\s*)(\\d+)", re.I)
-QUESTION_ID = re.compile(r"Question\\s*Id\\s*:\\s*(\\d+)", re.I)
-EXAM_DATE = re.compile(r"Exam\\s*Date\\s*:\\s*([0-9.\\-/]+)", re.I)
-EXAM_SHIFT = re.compile(r"Exam\\s*Shift\\s*:\\s*(First|Second|Third|1st|2nd|3rd|\\d+)", re.I)
-KEY_ROW = re.compile(r"(?<!\\d)(\\d{7,})(?:\\s+|\\s*[,|]\\s*)(\\d{7,})(?!\\d)")
+QUESTION_MARKER = re.compile(r"Question\s*(?:Number\s*:\s*|No\.?\s*:?\s*)(\d+)", re.I)
+QUESTION_ID = re.compile(r"Question\s*Id\s*:\s*(\d+)", re.I)
+EXAM_DATE = re.compile(r"Exam\s*Date\s*:\s*([0-9.\-/]+)", re.I)
+EXAM_SHIFT = re.compile(r"Exam\s*Shift\s*:\s*(First|Second|Third|1st|2nd|3rd|\d+)", re.I)
+KEY_ROW = re.compile(r"(?<!\d)(\d{7,})(?:\s+|\s*[,|]\s*)(\d{7,})(?!\d)")
 
 def read_pdf(path: Path) -> list[dict]:
     pages_out = []
@@ -65,9 +65,9 @@ def parse_questions(pages: list[dict]) -> list[dict]:
             if not id_match:
                 flags.append("question_id_not_found")
             # Keep this conservative: IDs and option IDs alone are not a question body.
-            if len(chunk) < 180 or not re.search(r"\\b(?:is|are|find|calculate|determine|which|what|value|given|equal|shown|consider|following)\\b", chunk, re.I):
+            if len(chunk) < 180 or not re.search(r"\b(?:is|are|find|calculate|determine|which|what|value|given|equal|shown|consider|following)\b", chunk, re.I):
                 flags.append("question_body_may_be_missing_or_ocr_incomplete")
-            if not re.search(r"Options?\\s*:", chunk, re.I):
+            if not re.search(r"Options?\s*:", chunk, re.I):
                 flags.append("options_not_detected")
             found.append({
                 "questionNumber": int(marker.group(1)),
@@ -87,7 +87,7 @@ def parse_questions(pages: list[dict]) -> list[dict]:
     return result
 
 def parse_key(pages: list[dict]) -> dict:
-    text = "\\n".join(p["text"] for p in pages)
+    text = "\n".join(p["text"] for p in pages)
     date = EXAM_DATE.search(text)
     shift = EXAM_SHIFT.search(text)
     pairs = []
@@ -105,7 +105,7 @@ def parse_key(pages: list[dict]) -> dict:
 def normalize_date(value: str | None) -> str | None:
     if not value:
         return None
-    m = re.fullmatch(r"(\\d{4})-(\\d{2})-(\\d{2})-shift-\\d+", value, re.I)
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})-shift-\d+", value, re.I)
     if m:
         return f"{m.group(3)}.{m.group(2)}.{m.group(1)}"
     return None
@@ -154,7 +154,7 @@ def main() -> int:
         "answerKey": key,
         "warnings": warnings,
     }
-    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Created {len(questions)} question candidates; {suspicious} have extraction review flags; {len(key['candidatePairs'])} answer-key row candidates.")
     print(f"OCR pages: paper {payload['sources']['paper']['ocrPages']}/{len(paper_pages)}, key {payload['sources']['finalAnswerKey']['ocrPages']}/{len(key_pages)}.")
     if mismatch:
