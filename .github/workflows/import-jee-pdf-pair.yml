@@ -1,0 +1,68 @@
+name: Import JEE PDF pair (review draft)
+
+on:
+  workflow_dispatch:
+    inputs:
+      paper_path:
+        description: Repository path to the question paper PDF
+        required: true
+        default: data/source-papers/JEE-Main-2026-Question-Paper-B-Tech-2nd-Apr-Shift-2.pdf
+        type: string
+      key_path:
+        description: Repository path to the matching final answer key PDF
+        required: true
+        default: data/source-papers/JEE-Main-2026-Answer-Key-Session-1.pdf
+        type: string
+      label:
+        description: Label for the generated review draft
+        required: true
+        default: 2026-04-02-shift-2
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  import-review-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PDF parser
+        run: python -m pip install --upgrade pip pymupdf
+
+      - name: Validate input paths
+        env:
+          PAPER_PATH: ${{ inputs.paper_path }}
+          KEY_PATH: ${{ inputs.key_path }}
+        run: |
+          test -f "$PAPER_PATH" || { echo "Question paper not found: $PAPER_PATH"; exit 1; }
+          test -f "$KEY_PATH" || { echo "Answer key not found: $KEY_PATH"; exit 1; }
+          case "$PAPER_PATH" in *.pdf|*.PDF) ;; *) echo "Paper must be a PDF"; exit 1;; esac
+          case "$KEY_PATH" in *.pdf|*.PDF) ;; *) echo "Answer key must be a PDF"; exit 1;; esac
+
+      - name: Generate review-only draft
+        env:
+          PAPER_PATH: ${{ inputs.paper_path }}
+          KEY_PATH: ${{ inputs.key_path }}
+          LABEL: ${{ inputs.label }}
+        run: |
+          python scripts/import-jee-pdf-pair.py \
+            --paper "$PAPER_PATH" \
+            --key "$KEY_PATH" \
+            --label "$LABEL" \
+            --out data/import/review-drafts
+
+      - name: Upload review draft artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jee-import-review-draft
+          path: data/import/review-drafts/*.json
+          if-no-files-found: error
+          retention-days: 14
