@@ -53,3 +53,18 @@ test("blocks a verified question when an evidence boolean is missing", () => {
   assert.equal(result.status, 2, result.stderr || result.stdout);
   assert.match(result.stdout, /Missing evidence: explicit diagram check/);
 });
+
+test("does not demand verification evidence for an unverified draft", () => {
+  const result = runAudit({
+    status: "unverified",
+    sourcePageRef: undefined,
+    originalPageImage: undefined,
+    questionTextChecked: undefined,
+    optionsChecked: undefined,
+    answerKeyChecked: undefined,
+    solutionIndependentlyChecked: undefined,
+    diagramChecked: undefined,
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /Audited 0 verified record\(s\); 0 need evidence/);
+});
