@@ -1,6 +1,15 @@
 name: Import JEE PDF pair (review draft)
 
 on:
+  push:
+    branches:
+      - feat/question-quality-audit-gate
+    paths:
+      - '.github/workflows/import-jee-pdf-pair.yml'
+      - 'scripts/import-jee-pdf-pair.py'
+      - 'scripts/build-import-review-report.py'
+      - 'data/source-papers/JEE-Main-2026-Question-Paper-B-Tech-2nd-Apr-Shift-2.pdf'
+      - 'data/source-papers/2026 jee mains answer key session 2.pdf'
   workflow_dispatch:
     inputs:
       paper_path:
@@ -44,8 +53,8 @@ jobs:
 
       - name: Validate input paths
         env:
-          PAPER_PATH: ${{ inputs.paper_path }}
-          KEY_PATH: ${{ inputs.key_path }}
+          PAPER_PATH: ${{ inputs.paper_path || 'data/source-papers/JEE-Main-2026-Question-Paper-B-Tech-2nd-Apr-Shift-2.pdf' }}
+          KEY_PATH: ${{ inputs.key_path || 'data/source-papers/2026 jee mains answer key session 2.pdf' }}
         run: |
           test -f "$PAPER_PATH" || { echo "Question paper not found: $PAPER_PATH"; exit 1; }
           test -f "$KEY_PATH" || { echo "Answer key not found: $KEY_PATH"; exit 1; }
@@ -56,7 +65,7 @@ jobs:
         env:
           PAPER_PATH: ${{ inputs.paper_path }}
           KEY_PATH: ${{ inputs.key_path }}
-          LABEL: ${{ inputs.label }}
+          LABEL: ${{ inputs.label || '2026-04-02-shift-2' }}
         run: |
           python scripts/import-jee-pdf-pair.py \
             --paper "$PAPER_PATH" \
