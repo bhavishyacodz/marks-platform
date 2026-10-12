@@ -63,8 +63,8 @@ jobs:
 
       - name: Generate review-only draft
         env:
-          PAPER_PATH: ${{ inputs.paper_path }}
-          KEY_PATH: ${{ inputs.key_path }}
+          PAPER_PATH: ${{ inputs.paper_path || 'data/source-papers/JEE-Main-2026-Question-Paper-B-Tech-2nd-Apr-Shift-2.pdf' }}
+          KEY_PATH: ${{ inputs.key_path || 'data/source-papers/2026 jee mains answer key session 2.pdf' }}
           LABEL: ${{ inputs.label || '2026-04-02-shift-2' }}
         run: |
           python scripts/import-jee-pdf-pair.py \
