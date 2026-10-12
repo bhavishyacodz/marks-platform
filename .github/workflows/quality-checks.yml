@@ -46,7 +46,7 @@ jobs:
         run: npm run lint
 
       - name: Run question-quality evidence audit
-        run: npm run audit:question-quality
+        run: npm run audit:question-quality:strict
 
       - name: Build production app
         run: npm run build
