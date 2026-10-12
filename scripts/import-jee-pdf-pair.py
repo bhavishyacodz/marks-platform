@@ -18,14 +18,26 @@ EXAM_SHIFT = re.compile(r"Exam\s*Shift\s*:\s*(First|Second|Third|1st|2nd|3rd|\d+
 KEY_ROW = re.compile(r"(?<!\d)(\d{7,})(?:\s+|\s*[,|]\s*)(\d{7,})(?!\d)")
 
 def extraction_score(text: str) -> int:
-    """Prefer text that contains readable stems and option labels, not just IDs."""
+    """Score readable question content, discounting metadata and numeric IDs."""
     markers = list(QUESTION_MARKER.finditer(text))
     score = len(markers) * 2
-    score += len(re.findall(r"\b(?:which|what|find|calculate|determine|consider|following|value|equal|shown|given|is|are)\b", text, re.I)) * 3
-    score += len(re.findall(r"(?im)^\s*(?:Option\s*)?\(?[A-D]\)?[.)：:]\s+", text)) * 4
-    score += len(re.findall(r"Options?\s*:", text, re.I)) * 5
-    # Penalize pages dominated by metadata/IDs with no recognizable question body.
-    if markers and not re.search(r"\b(?:which|what|find|calculate|determine|consider|following|value|equal|shown|given)\b", text, re.I):
+    # Remove boilerplate before scoring: metadata words like "is" must not make
+    # an ID-only native text layer beat OCR that recovered the actual question.
+    body = QUESTION_MARKER.sub(" ", text)
+    body = QUESTION_ID.sub(" ", body)
+    body = QUESTION_TYPE.sub(" ", body)
+    body = re.sub(
+        r"(?im)^\s*(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation)\s*:\s*.*$",
+        " ", body
+    )
+    body = re.sub(r"\b(?:aglasem\.com|Page\s+\d+\s+of\s+\d+)\b", " ", body, flags=re.I)
+    body = re.sub(r"\b\d{7,}\b", " ", body)
+    meaningful = re.sub(r"[^A-Za-z\u0900-\u097F]+", "", body)
+    score += min(len(meaningful), 500) // 4
+    score += len(re.findall(r"\b(?:which|what|find|calculate|determine|consider|following|value|equal|shown|given|derive|select|correct|incorrect)\b", body, re.I)) * 3
+    score += len(re.findall(r"(?im)^\s*(?:Option\s*)?\(?[A-D]\)?[.)：:]\s+", body)) * 4
+    score += len(re.findall(r"Options?\s*:", body, re.I)) * 8
+    if markers and len(meaningful) < 12:
         score -= 20 * len(markers)
     return score
 
