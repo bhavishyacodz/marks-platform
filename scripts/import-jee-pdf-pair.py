@@ -252,6 +252,38 @@ def main() -> int:
         warnings.insert(0, f"BLOCKING SOURCE MISMATCH: label expects {expected_date}, but key extraction reports {key['examDate']}. Do not use these answer-key candidates.")
     if not key["examDate"] or not key["examShift"]:
         warnings.insert(0, "SOURCE METADATA INCOMPLETE: could not confidently extract both date and shift from the key.")
+
+    # Link question IDs to answer-key IDs only as review candidates. A shared ID
+    # is not proof that the selected key row/subject/option is correct.
+    key_options_by_id: dict[str, set[str]] = {}
+    for pair in key["candidatePairs"]:
+        key_options_by_id.setdefault(pair["questionId"], set()).add(pair["correctOptionId"])
+    matched_ids = ambiguous_ids = unmatched_ids = 0
+    if not mismatch:
+        for question in questions:
+            qid = question.get("questionId")
+            options = key_options_by_id.get(qid, set()) if qid else set()
+            if len(options) == 1:
+                question["answerKeyCandidateOptionId"] = next(iter(options))
+                question["answerKeyMatchStatus"] = "question-id-match-needs-human-review"
+                matched_ids += 1
+            elif len(options) > 1:
+                question["answerKeyCandidateOptionId"] = None
+                question["answerKeyMatchStatus"] = "ambiguous-key-id"
+                question["reviewFlags"].append("answer_key_id_has_conflicting_options")
+                ambiguous_ids += 1
+            else:
+                question["answerKeyCandidateOptionId"] = None
+                question["answerKeyMatchStatus"] = "no-key-id-match"
+                question["reviewFlags"].append("answer_key_question_id_not_matched")
+                unmatched_ids += 1
+    else:
+        for question in questions:
+            question["answerKeyCandidateOptionId"] = None
+            question["answerKeyMatchStatus"] = "blocked-source-mismatch"
+            question["reviewFlags"].append("answer_key_source_mismatch")
+        unmatched_ids = len(questions)
+
     ocr_errors = sum(bool(p.get("ocrError")) for p in paper_pages + key_pages)
     if ocr_errors:
         warnings.append(f"OCR failed on {ocr_errors} page(s); inspect those pages manually.")
@@ -283,13 +315,24 @@ def main() -> int:
             "paper": {"filename": args.paper.name, "sha256": sha256(args.paper), "pageCount": len(paper_pages), "ocrPages": sum(bool(p.get("ocrUsed")) for p in paper_pages)},
             "finalAnswerKey": {"filename": args.key.name, "sha256": sha256(args.key), "pageCount": len(key_pages), "ocrPages": sum(bool(p.get("ocrUsed")) for p in key_pages)},
         },
-        "summary": {"questionCandidates": len(questions), "questionCandidatesFlaggedForReview": suspicious, "keyCandidatePairs": len(key["candidatePairs"]), "sourceMismatch": mismatch},
+        "summary": {
+            "questionCandidates": len(questions),
+            "questionCandidatesFlaggedForReview": sum(bool(q["reviewFlags"]) for q in questions),
+            "keyCandidatePairs": len(key["candidatePairs"]),
+            "questionIdMatchedCandidates": matched_ids,
+            "ambiguousQuestionIdMatches": ambiguous_ids,
+            "unmatchedQuestionIds": unmatched_ids,
+            "duplicateKeyQuestionIds": sum(1 for values in key_options_by_id.values() if len(values) > 1),
+            "sourceMismatch": mismatch,
+        },
         "questions": questions,
         "answerKey": key,
         "warnings": warnings,
     }
     output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Created {len(questions)} question candidates; {suspicious} have extraction review flags; {len(key['candidatePairs'])} answer-key row candidates.")
+    print(f"Created {len(questions)} question candidates; {sum(bool(q['reviewFlags']) for q in questions)} have review flags; {len(key['candidatePairs'])} answer-key row candidates.")
+    print(f"ID-level key candidates: {matched_ids} matched, {ambiguous_ids} ambiguous, {unmatched_ids} unmatched.")
+    print("ID-level matches are not verified answers; inspect the original paper and matching final-key row.")
     print(f"OCR pages: paper {payload['sources']['paper']['ocrPages']}/{len(paper_pages)}, key {payload['sources']['finalAnswerKey']['ocrPages']}/{len(key_pages)}.")
     if mismatch:
         print(f"BLOCKED: expected key date {expected_date}; extracted key date {key['examDate']}.")
