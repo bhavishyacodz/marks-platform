@@ -1,6 +1,13 @@
 name: MARKS quality checks
 
 on:
+  push:
+    branches: [feat/question-quality-audit-gate]
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "package.json"
+      - ".github/workflows/**"
   pull_request:
     branches: [main]
     paths:
@@ -31,10 +38,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run lint
         run: npm run lint
