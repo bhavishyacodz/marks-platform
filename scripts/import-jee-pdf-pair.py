@@ -6,7 +6,7 @@ interpret equations, diagrams, option order, or answer mapping. Nothing is verif
 or published by this script.
 """
 from __future__ import annotations
-import argparse, hashlib, json, re
+import argparse, base64, hashlib, json, os, re, urllib.error, urllib.request
 from pathlib import Path
 import fitz
 
@@ -143,6 +143,7 @@ def read_pdf(path: Path) -> list[dict]:
             )
             chosen = ocr_text if use_ocr else text
             pages_out.append({
+                "_page": page,
                 "page": i + 1,
                 "text": chosen,
                 "nativeText": text,
@@ -276,6 +277,52 @@ def normalize_date(value: str | None) -> str | None:
         return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
     return None
 
+
+def gemini_page_transcription(page, api_key: str, model: str) -> tuple[str | None, str | None]:
+    """Return a clearly unverified image transcription; never replace source text."""
+    try:
+        pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False)
+        image_b64 = base64.b64encode(pix.tobytes("png")).decode("ascii")
+        prompt = (
+            "Transcribe the visible JEE Main question text and every option exactly as printed. "
+            "Preserve equations, signs, powers, roots, Greek letters and option labels. "
+            "Do not solve the question or infer missing content. Use [UNCLEAR] where unreadable. "
+            "Return plain text only."
+        )
+        body = {
+            "contents": [{"parts": [
+                {"text": prompt},
+                {"inline_data": {"mime_type": "image/png", "data": image_b64}}
+            ]}],
+            "generationConfig": {"temperature": 0, "maxOutputTokens": 4096}
+        }
+        endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent"
+        request = urllib.request.Request(
+            endpoint, data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
+            method="POST"
+        )
+        with urllib.request.urlopen(request, timeout=90) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        text_parts = []
+        for candidate in result.get("candidates", []):
+            for part in candidate.get("content", {}).get("parts", []):
+                if isinstance(part.get("text"), str):
+                    text_parts.append(part["text"])
+        recovered = "\\n".join(text_parts).strip()
+        if not recovered:
+            return None, "Gemini returned no transcription text"
+        return recovered, None
+    except urllib.error.HTTPError as exc:
+        # Do not include request headers or secrets in logs/errors.
+        try:
+            detail = exc.read().decode("utf-8", "replace")[:500]
+        except Exception:
+            detail = "no response body"
+        return None, f"Gemini HTTP {exc.code}: {detail}"
+    except Exception as exc:
+        return None, f"Gemini {type(exc).__name__}: {exc}"
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--paper", required=True, type=Path, help="Question paper PDF")
@@ -292,6 +339,32 @@ def main() -> int:
     shift_match = re.search(r"shift-(\d+)", label, re.I)
     expected_shift = shift_match.group(1) if shift_match else None
     questions, key = parse_questions(paper_pages), parse_key(key_pages, expected_date, expected_shift)
+    gemini_attempted = gemini_succeeded = gemini_failed = 0
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
+    if api_key:
+        # Transcribe only source pages containing flagged questions. Results stay
+        # separate from rawText and are never treated as verified or auto-published.
+        page_to_questions = {}
+        for question in questions:
+            if question.get("reviewFlags"):
+                page_to_questions.setdefault(question["page"], []).append(question)
+        for page_number, page_questions in page_to_questions.items():
+            gemini_attempted += 1
+            transcription, error = gemini_page_transcription(paper_pages[page_number - 1].get("_page"), api_key, model) if paper_pages[page_number - 1].get("_page") else (None, "source page handle unavailable")
+            for question in page_questions:
+                question["geminiRecovery"] = {
+                    "status": "transcribed-needs-human-review" if transcription else "failed",
+                    "model": model,
+                    "text": transcription,
+                    "error": error,
+                    "isVerified": False,
+                    "requiresSourceReview": True,
+                }
+            if transcription:
+                gemini_succeeded += 1
+            else:
+                gemini_failed += 1
     warnings = [
         "This is a draft extraction, not a publishable question bank.",
         "Do not infer option text, diagrams, chapter/topic or answer from IDs alone.",
@@ -375,6 +448,9 @@ def main() -> int:
             "unmatchedQuestionIds": unmatched_ids,
             "duplicateKeyQuestionIds": sum(1 for values in key_options_by_id.values() if len(values) > 1),
             "sourceMismatch": mismatch,
+            "geminiPagesAttempted": gemini_attempted,
+            "geminiPagesSucceeded": gemini_succeeded,
+            "geminiPagesFailed": gemini_failed,
         },
         "questions": questions,
         "answerKey": key,
