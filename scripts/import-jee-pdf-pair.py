@@ -279,40 +279,52 @@ def normalize_date(value: str | None) -> str | None:
     return None
 
 
-def gemini_page_transcription(page_png: bytes, api_key: str, model: str) -> tuple[str | None, str | None]:
-    """Return a clearly unverified image transcription; never replace source text."""
+def gemini_pages_transcription(page_images: list[tuple[int, bytes]], api_key: str, model: str) -> tuple[dict[int, str] | None, str | None]:
+    """Transcribe a small batch of source pages in one request; all results remain unverified."""
     try:
-        image_b64 = base64.b64encode(page_png).decode("ascii")
-        prompt = (
-            "Extract every visible JEE Main question from this page. Transcribe the stem and options "
-            "exactly as printed; preserve equations, signs, powers, roots, Greek letters and option labels. "
-            "Never solve or infer missing content. Use [UNCLEAR] for unreadable text. "
-            "question_id must be the official numeric Question Id, not question number, page number, or option ID. "
-            "For MCQ, return the visible options in printed order; do not invent missing options. "
-            "For numerical-answer questions, options may be an empty array. has_diagram is true when a diagram/graph/figure "
-            "is present or needed to understand the question. Keep each question separate."
-        )
+        parts = [{
+            "text": (
+                "Transcribe each attached JEE Main question-paper page independently. "
+                "The text immediately before each image identifies its page_number. "
+                "Return one object for every supplied page, including pages with no detectable question. "
+                "Transcribe stems and options exactly; preserve equations, signs, powers, roots, Greek letters "
+                "and option labels. Never solve or infer missing content; use [UNCLEAR] for unreadable text. "
+                "question_id must be the official numeric Question Id, not question number, page number, or option ID. "
+                "For MCQs return visible options in printed order; do not invent options. Numerical-answer questions "
+                "may have an empty options array. has_diagram is true if a diagram/graph/figure is present or needed. "
+                "Do not mark anything verified."
+            )
+        }]
+        for page_number, page_png in page_images:
+            parts.append({"text": f"BEGIN SOURCE PAGE page_number={page_number}"})
+            parts.append({"inline_data": {"mime_type": "image/png", "data": base64.b64encode(page_png).decode("ascii")}})
+            parts.append({"text": f"END SOURCE PAGE page_number={page_number}"})
+        question_schema = {
+            "type": "OBJECT",
+            "properties": {
+                "question_id": {"type": "STRING"},
+                "stem": {"type": "STRING"},
+                "options": {"type": "ARRAY", "items": {"type": "STRING"}},
+                "has_diagram": {"type": "BOOLEAN"}
+            },
+            "required": ["question_id", "stem", "options", "has_diagram"]
+        }
         schema = {
             "type": "ARRAY",
             "items": {
                 "type": "OBJECT",
                 "properties": {
-                    "question_id": {"type": "STRING"},
-                    "stem": {"type": "STRING"},
-                    "options": {"type": "ARRAY", "items": {"type": "STRING"}},
-                    "has_diagram": {"type": "BOOLEAN"}
+                    "page_number": {"type": "INTEGER"},
+                    "questions": {"type": "ARRAY", "items": question_schema}
                 },
-                "required": ["question_id", "stem", "options", "has_diagram"]
+                "required": ["page_number", "questions"]
             }
         }
         body = {
-            "contents": [{"parts": [
-                {"text": prompt},
-                {"inline_data": {"mime_type": "image/png", "data": image_b64}}
-            ]}],
+            "contents": [{"parts": parts}],
             "generationConfig": {
                 "temperature": 0,
-                "maxOutputTokens": 4096,
+                "maxOutputTokens": 8192,
                 "responseMimeType": "application/json",
                 "responseSchema": schema
             }
@@ -323,14 +335,15 @@ def gemini_page_transcription(page_png: bytes, api_key: str, model: str) -> tupl
             headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
             method="POST"
         )
-        with urllib.request.urlopen(request, timeout=90) as response:
+        with urllib.request.urlopen(request, timeout=120) as response:
             result = json.loads(response.read().decode("utf-8"))
-        text_parts = []
-        for candidate in result.get("candidates", []):
-            for part in candidate.get("content", {}).get("parts", []):
-                if isinstance(part.get("text"), str):
-                    text_parts.append(part["text"])
-        recovered = "\\n".join(text_parts).strip()
+        text_parts = [
+            part["text"]
+            for candidate in result.get("candidates", [])
+            for part in candidate.get("content", {}).get("parts", [])
+            if isinstance(part.get("text"), str)
+        ]
+        recovered = "\n".join(text_parts).strip()
         if not recovered:
             return None, "Gemini returned no transcription text"
         try:
@@ -339,21 +352,29 @@ def gemini_page_transcription(page_png: bytes, api_key: str, model: str) -> tupl
             return None, f"Gemini returned invalid JSON: {exc}"
         if not isinstance(parsed, list):
             return None, "Gemini JSON response was not an array"
-        required = {"question_id", "stem", "options", "has_diagram"}
-        for index, item in enumerate(parsed):
-            if not isinstance(item, dict) or not required.issubset(item):
-                return None, f"Gemini question {index + 1} is missing required fields"
-            if not isinstance(item["question_id"], str) or not isinstance(item["stem"], str):
-                return None, f"Gemini question {index + 1} has invalid ID/stem types"
-            if not isinstance(item["options"], list) or not all(isinstance(opt, str) for opt in item["options"]):
-                return None, f"Gemini question {index + 1} has invalid options"
-            if not isinstance(item["has_diagram"], bool):
-                return None, f"Gemini question {index + 1} has invalid diagram flag"
-            if not item["stem"].strip():
-                return None, f"Gemini question {index + 1} has an empty stem"
-        return json.dumps(parsed, ensure_ascii=False), None
+        expected_pages = {number for number, _ in page_images}
+        result_by_page = {}
+        for item in parsed:
+            if not isinstance(item, dict) or not isinstance(item.get("page_number"), int) or not isinstance(item.get("questions"), list):
+                return None, "Gemini page response has invalid fields"
+            number = item["page_number"]
+            if number not in expected_pages or number in result_by_page:
+                return None, "Gemini returned an unknown or duplicate page number"
+            for index, question in enumerate(item["questions"]):
+                required = {"question_id", "stem", "options", "has_diagram"}
+                if not isinstance(question, dict) or not required.issubset(question):
+                    return None, f"Gemini page {number}, question {index + 1} is missing required fields"
+                if not isinstance(question["question_id"], str) or not isinstance(question["stem"], str) or not question["stem"].strip():
+                    return None, f"Gemini page {number}, question {index + 1} has invalid ID/stem"
+                if not isinstance(question["options"], list) or not all(isinstance(opt, str) for opt in question["options"]):
+                    return None, f"Gemini page {number}, question {index + 1} has invalid options"
+                if not isinstance(question["has_diagram"], bool):
+                    return None, f"Gemini page {number}, question {index + 1} has invalid diagram flag"
+            result_by_page[number] = json.dumps(item["questions"], ensure_ascii=False)
+        if set(result_by_page) != expected_pages:
+            return None, "Gemini omitted one or more source pages"
+        return result_by_page, None
     except urllib.error.HTTPError as exc:
-        # Do not include request headers or secrets in logs/errors.
         try:
             detail = exc.read().decode("utf-8", "replace")[:500]
         except Exception:
@@ -388,29 +409,40 @@ def main() -> int:
         for question in questions:
             if question.get("reviewFlags"):
                 page_to_questions.setdefault(question["page"], []).append(question)
-        quota_or_service_blocked = False
-        for page_number, page_questions in page_to_questions.items():
+        # One request handles up to three pages. This reduces request overhead while
+        # keeping the prompt/output bounded; each recovered page remains review-only.
+        flagged_pages = list(page_to_questions.items())
+        batch_size = 3
+        for offset in range(0, len(flagged_pages), batch_size):
+            batch = flagged_pages[offset:offset + batch_size]
+            images = []
+            missing_images = []
+            for page_number, _ in batch:
+                page_png = paper_pages[page_number - 1].get("_page_png")
+                if page_png:
+                    images.append((page_number, page_png))
+                else:
+                    missing_images.append(page_number)
             gemini_attempted += 1
-            page_png = paper_pages[page_number - 1].get("_page_png")
-            if quota_or_service_blocked:
-                transcription, error = None, "Skipped after earlier Gemini quota/service error; retry later"
-            else:
-                transcription, error = gemini_page_transcription(page_png, api_key, model) if page_png else (None, "source page image unavailable")
-            for question in page_questions:
-                question["geminiRecovery"] = {
-                    "status": "transcribed-needs-human-review" if transcription else "failed",
-                    "model": model,
-                    "text": transcription,
-                    "error": error,
-                    "isVerified": False,
-                    "requiresSourceReview": True,
-                }
-            if transcription:
-                gemini_succeeded += 1
-            else:
-                gemini_failed += 1
-                if error and ("Gemini HTTP 429" in error or "Gemini HTTP 503" in error):
-                    quota_or_service_blocked = True
+            recovered_by_page, error = gemini_pages_transcription(images, api_key, model) if images else (None, "source page images unavailable")
+            if recovered_by_page is None and missing_images:
+                error = (error + "; " if error else "") + f"source page image unavailable: {missing_images}"
+            for page_number, page_questions in batch:
+                transcription = (recovered_by_page or {}).get(page_number)
+                page_error = error if recovered_by_page is None else (None if transcription is not None else "Gemini omitted this page")
+                for question in page_questions:
+                    question["geminiRecovery"] = {
+                        "status": "transcribed-needs-human-review" if transcription else "failed",
+                        "model": model,
+                        "text": transcription,
+                        "error": page_error,
+                        "isVerified": False,
+                        "requiresSourceReview": True,
+                    }
+                if transcription:
+                    gemini_succeeded += 1
+                else:
+                    gemini_failed += 1
     warnings = [
         "This is a draft extraction, not a publishable question bank.",
         "Do not infer option text, diagrams, chapter/topic or answer from IDs alone.",
