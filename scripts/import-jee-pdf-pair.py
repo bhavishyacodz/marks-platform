@@ -111,7 +111,9 @@ def parse_key(pages: list[dict], expected_date: str | None, expected_shift: str 
     target_shift = canonical_shift(expected_shift)
     records = []
     for page in pages:
-        text = page["text"]
+        # Prefer selectable PDF text for metadata. OCR can distort dates and shift labels,
+        # and read_pdf intentionally retains nativeText for exactly this reason.
+        text = page.get("nativeText") or page["text"]
         date = EXAM_DATE.search(text)
         shift = EXAM_SHIFT.search(text)
         page_date = canonical_date(date.group(1)) if date else None
