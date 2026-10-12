@@ -114,15 +114,26 @@ jobs:
               q.get("questionNumber") for q in questions
               if q.get("questionType") == "MCQ" and "options_not_detected" in q.get("reviewFlags", [])
           ]
-          missing_source_images = [
-              q.get("questionNumber") for q in questions
-              if not q.get("originalPageImage")
-              or not (Path("data/import/review-drafts") / q["originalPageImage"]).is_file()
-          ]
+          review_root = Path("data/import/review-drafts").resolve()
+          missing_source_images = []
+          unsafe_source_images = []
+          for q in questions:
+              image_ref = q.get("originalPageImage")
+              if not image_ref:
+                  missing_source_images.append(q.get("questionNumber"))
+                  continue
+              image_path = (review_root / image_ref).resolve()
+              # Reject absolute paths and traversal/symlink escapes outside the artifact folder.
+              if not image_path.is_relative_to(review_root):
+                  unsafe_source_images.append(q.get("questionNumber"))
+              elif not image_path.is_file():
+                  missing_source_images.append(q.get("questionNumber"))
           missing_source_refs = [
               q.get("questionNumber") for q in questions
               if not q.get("sourcePageRef")
           ]
+          if unsafe_source_images:
+              raise SystemExit(f"BLOCKED: original page image path escapes review artifact folder: {unsafe_source_images}")
           if missing_source_images:
               raise SystemExit(f"BLOCKED: original page image missing for question candidates: {missing_source_images}")
           if missing_source_refs:
