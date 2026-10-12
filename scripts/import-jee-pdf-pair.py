@@ -91,13 +91,13 @@ def read_pdf(path: Path) -> list[dict]:
                     return readable_content_length(value) >= 40
                 for j, value_marker in enumerate(value_markers):
                     value_chunk = value[value_marker.start():(value_markers[j + 1].start() if j + 1 < len(value_markers) else len(value))]
-                    value_stem = re.split(r"Options?\\s*:", value_chunk, maxsplit=1, flags=re.I)[0]
+                    value_stem = re.split(r"Options?\s*:", value_chunk, maxsplit=1, flags=re.I)[0]
                     value_stem = QUESTION_MARKER.sub(" ", value_stem)
                     value_stem = QUESTION_ID.sub(" ", value_stem)
                     value_stem = QUESTION_TYPE.sub(" ", value_stem)
-                    value_stem = re.sub(r"(?im)^\\s*(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation)\\s*:\\s*.*$", " ", value_stem)
-                    value_stem = re.sub(r"\\b\\d{7,}\\b", " ", value_stem)
-                    if len(re.sub(r"[^A-Za-z\\u0900-\\u097F]+", "", value_stem)) >= 12:
+                    value_stem = re.sub(r"(?im)^\s*(?:Option Shuffling|Display Question Number|Question Mandatory|Single Line Question Option|Option Orientation)\s*:\s*.*$", " ", value_stem)
+                    value_stem = re.sub(r"\b\d{7,}\b", " ", value_stem)
+                    if len(re.sub(r"[^A-Za-z\u0900-\u097F]+", "", value_stem)) >= 12:
                         return True
                 return False
             native_has_stem = has_meaningful_question_stems(text)
