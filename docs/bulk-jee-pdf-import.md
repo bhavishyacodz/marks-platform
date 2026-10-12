@@ -1,36 +1,33 @@
 # Bulk JEE Main PDF import (review-first)
 
-This pipeline turns an official question-paper PDF and its matching official final answer-key PDF into one review draft. It is intentionally conservative: it does not publish questions and never marks extracted questions as verified.
+This pipeline creates a review draft from a question-paper PDF and an answer-key PDF. It uses native PDF text when useful and attempts OCR on sparse pages with Tesseract. OCR is only a text aid: it can misread math, diagrams, superscripts, option order, and question boundaries.
 
-## Run on Termux
+## Run from GitHub Actions (recommended for phone-only workflow)
 
-1. Install the PDF parser once:
-   `pkg update`
-   `pkg install python`
-   `python -m pip install --upgrade pip`
-   `python -m pip install pymupdf`
+1. Open the repository's **Actions** tab.
+2. Select **Import JEE PDF pair (review draft)**, then **Run workflow**.
+3. Enter the repository paths for the question paper and the matching final answer-key PDF. Set the label to `YYYY-MM-DD-shift-N`.
+4. Open the completed run and download the `jee-import-review-draft` artifact.
+5. Inspect the JSON and compare every question, option, diagram and answer with the original PDF pages before considering any question for publication.
 
-   If PyMuPDF fails to build on Android/Termux, do not keep retrying a long native build. Run the same script on GitHub Codespaces or another Python environment with PyMuPDF installed, or send me the error so we can switch the extraction runtime.
+The workflow installs Tesseract on the GitHub runner and PyMuPDF in Python. It does not require a local PyMuPDF install on Android/Termux.
 
-2. Put the official paper and its matching official final answer key in `data/source-papers/`. Use the exact matching date and shift for both files.
+## Important safety checks
 
-3. From the repository root, run (adjust filenames to match your actual files):
+- If the label's date differs from the date detected in the key, the draft is marked `blocked-source-mismatch` and the workflow still produces a draft for inspection. Do not use its answer-key candidates.
+- The date/shift extracted from a multi-shift key may only represent the first matching metadata line. Confirm the specific target date and shift visually.
+- Candidate ID pairs are not automatically mapped to questions. Match question IDs and option IDs; do not infer answers from row order or IDs alone.
+- The JSON remains review-only. This workflow has read-only repository permissions and does not edit `src/data/questions.ts`, publish content, or mark questions verified.
 
-   ```bash
-   python scripts/import-jee-pdf-pair.py \
-     --paper "data/source-papers/JEE-Main-2026-Question-Paper-B-Tech-2nd-Apr-Shift-2.pdf" \
-     --key "data/source-papers/JEE-Main-2026-Apr-02-Shift-2-Final-Key.pdf" \
-     --label "2026-04-02-shift-2"
-   ```
+## Local use
 
-4. Open the JSON created under `data/import/review-drafts/`. Check each question's raw text against the original PDF page image. Confirm option order, diagrams, math symbols, subject, chapter, topic and answer against the official final key. Only then convert reviewed records into `src/data/questions.ts` or the approved import flow.
+Install Tesseract and PyMuPDF in an environment that supports them, then run:
 
-## What is automated / what is not
+```bash
+python scripts/import-jee-pdf-pair.py \
+  --paper "data/source-papers/your-question-paper.pdf" \
+  --key "data/source-papers/your-matching-final-key.pdf" \
+  --label "2026-04-02-shift-2"
+```
 
-- Automated: PDF text extraction, question-number/ID candidates, exam date/shift candidates, source SHA-256 fingerprints, and a review JSON file.
-- Not safe to automate blindly: question boundaries in every paper layout, OCR for diagrams/equations, subject and chapter classification, option text, and final answer mapping when the key's table layout is ambiguous.
-- The generated JSON is review-only. It is not added to the student-facing bank and is not published to Supabase.
-
-## Batch multiple shifts
-
-Run the command once per paper/key pair. Keep each pair matched exactly. Never pair a paper with a key from a different date or shift.
+Output is written under `data/import/review-drafts/`.
