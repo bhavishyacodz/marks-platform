@@ -421,10 +421,12 @@ def main() -> int:
         for question in questions:
             if question.get("reviewFlags"):
                 page_to_questions.setdefault(question["page"], []).append(question)
-        # One request handles up to three pages. This reduces request overhead while
-        # keeping the prompt/output bounded; each recovered page remains review-only.
+        # Keep each request to one page: multi-page responses were frequently
+        # truncated or malformed JSON, wasting the whole batch even when some pages
+        # were readable. Smaller responses make recovery more reliable; all output
+        # remains review-only and must be checked against the original page image.
         flagged_pages = list(page_to_questions.items())
-        batch_size = 3
+        batch_size = 1
         for offset in range(0, len(flagged_pages), batch_size):
             batch = flagged_pages[offset:offset + batch_size]
             images = []
