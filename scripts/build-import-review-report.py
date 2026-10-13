@@ -69,14 +69,14 @@ def build_report(source: Path, output: Path) -> None:
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>JEE import review — {esc(exam.get('label', source.stem))}</title>
 <style>
-:root{{{{color-scheme:light}}}}body{{{{font:16px/1.5 system-ui,sans-serif;margin:0;background:#f4f6fa;color:#182033}}}}
-header{{{{padding:22px; background:#fff;border-bottom:1px solid #d9dfeb}}}}main{{{{max-width:1100px;margin:auto;padding:16px}}}}
-.controls{{{{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}}}}button{{{{padding:10px 14px;border:1px solid #aab5c8;border-radius:8px;background:#fff;color:#182033;font-weight:650}}}}button[aria-pressed="true"]{{{{background:#182033;color:#fff}}}}.statusline{{{{margin:0 0 10px;padding:8px 10px;background:#fff4df;border-radius:6px;color:#704000}}}}
-.question{{{{background:#fff;border:1px solid #d9dfeb;border-radius:12px;padding:16px;margin:16px 0}}}}
-.heading{{{{display:flex;flex-wrap:wrap;gap:12px;align-items:center}}}}h1{{{{font-size:1.35rem}}}}h2{{{{font-size:1.15rem;margin:0}}}}h3{{{{font-size:1rem}}}}
-.grid{{{{display:grid;grid-template-columns:1fr 1fr;gap:18px}}}}img{{{{width:100%;height:auto;border:1px solid #ddd}}}}pre{{{{white-space:pre-wrap;overflow-wrap:anywhere;background:#f7f8fb;padding:12px;border-radius:8px;max-height:560px;overflow:auto}}}}
-.warning{{{{color:#9b2424;font-weight:700}}}}.notice{{{{padding:12px;border-left:4px solid #bd6b00;background:#fff4df}}}}
-@media(max-width:700px){{{{.grid{{{{grid-template-columns:1fr}}}}}}}}
+:root{{color-scheme:light}}body{{font:16px/1.5 system-ui,sans-serif;margin:0;background:#f4f6fa;color:#182033}}
+header{{padding:22px; background:#fff;border-bottom:1px solid #d9dfeb}}main{{max-width:1100px;margin:auto;padding:16px}}
+.controls{{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}}button{{padding:10px 14px;border:1px solid #aab5c8;border-radius:8px;background:#fff;color:#182033;font-weight:650}}button[aria-pressed="true"]{{background:#182033;color:#fff}}.statusline{{margin:0 0 10px;padding:8px 10px;background:#fff4df;border-radius:6px;color:#704000}}
+.question{{background:#fff;border:1px solid #d9dfeb;border-radius:12px;padding:16px;margin:16px 0}}
+.heading{{display:flex;flex-wrap:wrap;gap:12px;align-items:center}}h1{{font-size:1.35rem}}h2{{font-size:1.15rem;margin:0}}h3{{font-size:1rem}}
+.grid{{display:grid;grid-template-columns:1fr 1fr;gap:18px}}img{{width:100%;height:auto;border:1px solid #ddd}}pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#f7f8fb;padding:12px;border-radius:8px;max-height:560px;overflow:auto}}
+.warning{{color:#9b2424;font-weight:700}}.notice{{padding:12px;border-left:4px solid #bd6b00;background:#fff4df}}
+@media(max-width:700px){{.grid{{grid-template-columns:1fr}}}}
 </style></head><body>
 <header><h1>JEE PDF import review</h1>
 <p><b>Review only — no question or answer is verified by this report.</b></p>
