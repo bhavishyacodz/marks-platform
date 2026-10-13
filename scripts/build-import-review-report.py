@@ -18,8 +18,8 @@ def esc(value: object) -> str:
 def build_report(source: Path, output: Path) -> None:
     data = json.loads(source.read_text(encoding="utf-8"))
     questions = data.get("questions", [])
-    exam = data.get("exam", {{}})
-    summary = data.get("summary", {{}})
+    exam = data.get("exam", {})
+    summary = data.get("summary", {})
     cards = []
 
     for q in questions:
@@ -38,7 +38,7 @@ def build_report(source: Path, output: Path) -> None:
         flag_html = "".join(f"<li>{{esc(flag)}}</li>" for flag in flags) or "<li>No automatic flags; visual review is still required.</li>"
         candidate = q.get("answerKeyCandidateOptionId")
         candidate_text = esc(candidate) if candidate is not None else "No unique candidate"
-        recovery = q.get("geminiRecovery") or {{}}
+        recovery = q.get("geminiRecovery") or {}
         recovery_text = recovery.get("text")
         recovery_html = (
             f'<h3>Gemini image transcription — UNVERIFIED</h3><p class="notice">Model: {{esc(recovery.get("model"))}}. Compare every symbol and option against the source image; never treat this as verified text.</p><pre>{esc(recovery_text)}</pre>'
