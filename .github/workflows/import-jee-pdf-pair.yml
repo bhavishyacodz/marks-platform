@@ -67,7 +67,7 @@ jobs:
           KEY_PATH: ${{ inputs.key_path || 'data/source-papers/2026 jee mains answer key session 2.pdf' }}
           LABEL: ${{ inputs.label || '2026-04-02-shift-2' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: gemini-2.5-flash
+          GEMINI_MODEL: gemini-3.8-flash
         run: |
           python scripts/import-jee-pdf-pair.py \
             --paper "$PAPER_PATH" \
