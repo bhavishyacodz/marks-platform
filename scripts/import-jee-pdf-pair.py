@@ -428,6 +428,7 @@ def main() -> int:
         flagged_pages = list(page_to_questions.items())
         batch_size = 1
         quota_exhausted = False
+        service_unavailable = False
         for offset in range(0, len(flagged_pages), batch_size):
             batch = flagged_pages[offset:offset + batch_size]
             images = []
@@ -477,12 +478,31 @@ def main() -> int:
                         }
                 gemini_failed += len(remaining_pages)
                 break
+            # HTTP 503 after the request helper's bounded retries indicates a
+            # provider-side outage. Stop sending identical requests for each page.
+            if recovered_by_page is None and error and re.search(r"Gemini HTTP 503\\b", error):
+                service_unavailable = True
+                remaining_pages = flagged_pages[offset + batch_size:]
+                for page_number, page_questions in remaining_pages:
+                    for question in page_questions:
+                        question["geminiRecovery"] = {
+                            "status": "deferred-service-unavailable",
+                            "model": model,
+                            "text": None,
+                            "error": "Skipped after Gemini HTTP 503; retry when provider service recovers.",
+                            "isVerified": False,
+                            "requiresSourceReview": True,
+                        }
+                gemini_failed += len(remaining_pages)
+                break
     warnings = [
         "This is a draft extraction, not a publishable question bank.",
         "Do not infer option text, diagrams, chapter/topic or answer from IDs alone.",
         "Check every question and all four options against page images; verify answers against the matching final key.",
         "OCR is a best-effort text aid; equations, diagrams, superscripts, subscripts and option order require visual review.",
     ]
+    if api_key and "service_unavailable" in locals() and service_unavailable:
+        warnings.insert(0, "GEMINI SERVICE UNAVAILABLE: received HTTP 503 after bounded retries; remaining page requests were skipped. Retry when the provider recovers. All transcriptions remain unverified.")
     mismatch = (not expected_date or not expected_shift or not key["examDate"] or not key["examShift"] or expected_date != key["examDate"] or expected_shift != key["examShift"])
     if mismatch:
         warnings.insert(0, f"BLOCKING SOURCE MISMATCH: label expects {expected_date}, but key extraction reports {key['examDate']}. Do not use these answer-key candidates.")
