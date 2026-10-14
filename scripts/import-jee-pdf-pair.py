@@ -427,6 +427,7 @@ def main() -> int:
         # remains review-only and must be checked against the original page image.
         flagged_pages = list(page_to_questions.items())
         batch_size = 1
+        quota_exhausted = False
         for offset in range(0, len(flagged_pages), batch_size):
             batch = flagged_pages[offset:offset + batch_size]
             images = []
@@ -457,6 +458,25 @@ def main() -> int:
                     gemini_succeeded += 1
                 else:
                     gemini_failed += 1
+            # A 429 means this credential/model is rate- or quota-limited. Do not
+            # repeat the same failing request for every remaining page. Mark all
+            # remaining candidates as deferred so the report explains why no
+            # transcription was attempted; never rotate credentials to bypass quota.
+            if recovered_by_page is None and error and re.search(r"Gemini HTTP 429\\b", error):
+                quota_exhausted = True
+                remaining_pages = flagged_pages[offset + batch_size:]
+                for page_number, page_questions in remaining_pages:
+                    for question in page_questions:
+                        question["geminiRecovery"] = {
+                            "status": "deferred-quota",
+                            "model": model,
+                            "text": None,
+                            "error": "Skipped after Gemini HTTP 429; retry after quota/rate limit resets.",
+                            "isVerified": False,
+                            "requiresSourceReview": True,
+                        }
+                gemini_failed += len(remaining_pages)
+                break
     warnings = [
         "This is a draft extraction, not a publishable question bank.",
         "Do not infer option text, diagrams, chapter/topic or answer from IDs alone.",
@@ -503,6 +523,8 @@ def main() -> int:
     ocr_errors = sum(bool(p.get("ocrError")) for p in paper_pages + key_pages)
     if ocr_errors:
         warnings.append(f"OCR failed on {ocr_errors} page(s); inspect those pages manually.")
+    if api_key and "quota_exhausted" in locals() and quota_exhausted:
+        warnings.append("GEMINI QUOTA/RATE LIMIT: received HTTP 429; remaining page requests were skipped to avoid repeated failures. Retry after the limit resets. All transcriptions remain unverified.")
     suspicious = sum(bool(q["reviewFlags"]) for q in questions)
     args.out.mkdir(parents=True, exist_ok=True)
     safe_label = re.sub(r"[^A-Za-z0-9._-]+", "-", label).strip("-")
