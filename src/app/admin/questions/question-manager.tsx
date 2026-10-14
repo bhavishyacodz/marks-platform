@@ -195,7 +195,7 @@ export default function AdminQuestionManager() {
         {!user ? (
           <section style={{ background: "#fff", border: "1px solid #e9ecf3", borderRadius: 18, padding: 18 }}>
             <h2 style={{ marginTop: 0 }}>Admin sign-in</h2>
-            <p style={{ color: "#7b8497", fontSize: 14 }}>We'll email you a secure sign-in link. Only allowlisted accounts can manage questions.</p>
+            <p style={{ color: "#7b8497", fontSize: 14 }}>We&apos;ll email you a secure sign-in link. Only allowlisted accounts can manage questions.</p>
             <form onSubmit={signIn} style={{ display: "grid", gap: 12 }}>
               <label style={labelStyle}>Admin email<input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} placeholder="you@example.com" /></label>
               <button disabled={busy} style={{ padding: 13, border: 0, borderRadius: 12, background: "#4965ed", color: "#fff", fontWeight: 750 }}>{busy ? "Sending link…" : "Email me a sign-in link"}</button>

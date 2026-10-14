@@ -20,6 +20,17 @@ export type Question = {
   sourceCheckedAt?: string;
   /** Brief audit note naming what was cross-checked. */
   sourceNotes?: string;
+  /** Exact official paper page reference, e.g. a PDF filename and page number. */
+  sourcePageRef?: string;
+  /** Stable reference/path for the original paper-page image fallback. */
+  originalPageImage?: string;
+  /** Explicit visual review checklist; required before status can be verified. */
+  questionTextChecked?: boolean;
+  optionsChecked?: boolean;
+  answerKeyChecked?: boolean;
+  solutionIndependentlyChecked?: boolean;
+  /** Set true only after confirming the diagram, or confirming none is present. */
+  diagramChecked?: boolean;
   prompt: string;
   type?: QuestionType;
   options: QuestionOption[];
@@ -55,7 +66,7 @@ export const questions: Question[] = [
     topic: "Complex numbers and algebra",
     year: 2026,
     shift: "2 April 2026 Shift 2",
-    status: "verified",
+    status: "unverified",
     source: "NTA JEE Main 2026 Session 2 official paper and final answer key",
     sourceUrl: "https://jeemain.nta.nic.in/",
     sourceCheckedAt: "2026-10-12",

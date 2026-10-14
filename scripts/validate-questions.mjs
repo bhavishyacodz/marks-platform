@@ -101,11 +101,30 @@ for (const [index, item] of questions.entries()) {
         report(label, "sourceUrl must be a valid URL.");
       }
     }
-    if (typeof checkedAt !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(checkedAt) || Number.isNaN(Date.parse(checkedAt))) {
+    if (typeof checkedAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(checkedAt) || Number.isNaN(Date.parse(checkedAt))) {
       report(label, "verified questions must include sourceCheckedAt in YYYY-MM-DD format.");
     }
     if (typeof notes !== "string" || !notes.trim()) {
       report(label, "verified questions must include sourceNotes describing what was checked.");
+    }
+    const pageRef = literal(property(item, "sourcePageRef"));
+    const originalImage = literal(property(item, "originalPageImage"));
+    if (typeof pageRef !== "string" || !pageRef.trim()) {
+      report(label, "verified questions must include sourcePageRef pointing to the exact original paper page.");
+    }
+    if (typeof originalImage !== "string" || !originalImage.trim()) {
+      report(label, "verified questions must include originalPageImage as a visual fallback.");
+    }
+    for (const [field, description] of [
+      ["questionTextChecked", "original question text"],
+      ["optionsChecked", "options and order"],
+      ["answerKeyChecked", "official final answer key"],
+      ["solutionIndependentlyChecked", "independent solution"],
+      ["diagramChecked", "diagram or confirmation that none exists"],
+    ]) {
+      if (literal(property(item, field)) !== true) {
+        report(label, `verified questions must record a completed check for ${description} (${field}: true).`);
+      }
     }
   }
 
