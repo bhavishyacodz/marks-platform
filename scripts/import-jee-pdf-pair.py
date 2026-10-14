@@ -463,7 +463,7 @@ def main() -> int:
             # repeat the same failing request for every remaining page. Mark all
             # remaining candidates as deferred so the report explains why no
             # transcription was attempted; never rotate credentials to bypass quota.
-            if recovered_by_page is None and error and re.search(r"Gemini HTTP 429\\b", error):
+            if recovered_by_page is None and error and re.search(r"Gemini HTTP 429\b", error):
                 quota_exhausted = True
                 remaining_pages = flagged_pages[offset + batch_size:]
                 for page_number, page_questions in remaining_pages:
@@ -480,7 +480,7 @@ def main() -> int:
                 break
             # HTTP 503 after the request helper's bounded retries indicates a
             # provider-side outage. Stop sending identical requests for each page.
-            if recovered_by_page is None and error and re.search(r"Gemini HTTP 503\\b", error):
+            if recovered_by_page is None and error and re.search(r"Gemini HTTP 503\b", error):
                 service_unavailable = True
                 remaining_pages = flagged_pages[offset + batch_size:]
                 for page_number, page_questions in remaining_pages:
